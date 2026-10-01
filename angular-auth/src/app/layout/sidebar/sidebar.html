@@ -1,0 +1,144 @@
+<aside class="sidebar" aria-label="Main navigation">
+
+  <div class="brand">
+    <div class="brand-icon">
+      RI
+    </div>
+
+    <div class="brand-text">
+      <h2>Stockroom</h2>
+      <span>Retail operations</span>
+    </div>
+  </div>
+
+  <nav class="navigation">
+
+    <div class="menu-section">
+      <span class="section-title">MAIN</span>
+
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="nav-item">
+
+        <span class="icon">▦</span>
+        <span>Dashboard</span>
+
+      </a>
+    </div>
+
+    <div class="menu-section">
+
+      <span class="section-title">INVENTORY</span>
+
+      <a
+        routerLink="/products"
+        routerLinkActive="active"
+        class="nav-item">
+
+        <span class="icon">▣</span>
+        <span>Products</span>
+
+      </a>
+
+      <a
+        routerLink="/warehouses"
+        routerLinkActive="active"
+        class="nav-item">
+
+        <span class="icon">▤</span>
+        <span>Warehouses</span>
+
+      </a>
+
+      <a
+        routerLink="/inventory"
+        routerLinkActive="active"
+        class="nav-item">
+
+        <span class="icon">▥</span>
+        <span>Inventory</span>
+
+      </a>
+
+      <a
+        routerLink="/suppliers"
+        routerLinkActive="active"
+        class="nav-item">
+
+        <span class="icon">◇</span>
+        <span>Suppliers</span>
+
+      </a>
+
+    </div>
+
+    <div class="menu-section">
+
+      <span class="section-title">OPERATIONS</span>
+
+      <a
+        routerLink="/purchase-orders"
+        routerLinkActive="active"
+        class="nav-item">
+
+        <span class="icon">▧</span>
+        <span>Purchase Orders</span>
+
+      </a>
+
+      <a
+        routerLink="/orders"
+        routerLinkActive="active"
+        class="nav-item">
+
+        <span class="icon">▱</span>
+        <span>Customer Orders</span>
+
+      </a>
+
+      <a
+        routerLink="/order-items"
+        routerLinkActive="active"
+        class="nav-item">
+
+        <span class="icon">≡</span>
+        <span>Order Items</span>
+
+      </a>
+
+    </div>
+
+    <div class="menu-section">
+
+      <span class="section-title">ADMINISTRATION</span>
+
+      <a
+        routerLink="/users"
+        routerLinkActive="active"
+        class="nav-item">
+
+        <span class="icon">◎</span>
+        <span>Users</span>
+
+      </a>
+
+    </div>
+
+  </nav>
+
+  <div class="sidebar-footer">
+
+    <div class="system-status">
+      <span class="status-dot"></span>
+
+      <div>
+        <strong>API TARGET</strong>
+        <small>localhost:8083</small>
+      </div>
+    </div>
+
+  </div>
+
+</aside>

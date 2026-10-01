@@ -1,0 +1,69 @@
+<section class="dashboard-page">
+	<div class="dashboard-heading">
+		<div>
+			<p class="eyebrow">RETAIL OPERATIONS / OVERVIEW</p>
+			<h1>Good morning<span class="heading-period">.</span></h1>
+			<p class="dashboard-subtitle">A live view of your stock, orders, and supplier activity.</p>
+		</div>
+		<button class="refresh-button" type="button" (click)="load()" [disabled]="loading()" aria-label="Refresh dashboard">↻</button>
+	</div>
+
+	@if (errorMessage()) {
+		<div class="dashboard-alert" role="alert"><span>{{ errorMessage() }}</span><a routerLink="/inventory">Open inventory</a></div>
+	}
+
+	<div class="metric-grid" aria-live="polite">
+		<a class="metric-card metric-stock" routerLink="/products">
+			<span class="metric-label">PRODUCTS</span>
+			<strong>{{ loading() ? '—' : products().length }}</strong>
+			<span class="metric-note">Catalog entries <span aria-hidden="true">↗</span></span>
+			<span class="metric-symbol" aria-hidden="true">▦</span>
+		</a>
+		<a class="metric-card metric-low" routerLink="/inventory">
+			<span class="metric-label">LOW STOCK</span>
+			<strong>{{ loading() ? '—' : lowStock().length }}</strong>
+			<span class="metric-note">Need replenishment <span aria-hidden="true">↗</span></span>
+			<span class="metric-symbol" aria-hidden="true">!</span>
+		</a>
+		<a class="metric-card metric-orders" routerLink="/orders">
+			<span class="metric-label">OPEN ORDERS</span>
+			<strong>{{ loading() ? '—' : openOrders() }}</strong>
+			<span class="metric-note">Awaiting fulfillment <span aria-hidden="true">↗</span></span>
+			<span class="metric-symbol" aria-hidden="true">↗</span>
+		</a>
+		<a class="metric-card metric-purchase" routerLink="/purchase-orders">
+			<span class="metric-label">PURCHASE ORDERS</span>
+			<strong>{{ loading() ? '—' : openPurchaseOrders() }}</strong>
+			<span class="metric-note">In progress <span aria-hidden="true">↗</span></span>
+			<span class="metric-symbol" aria-hidden="true">＋</span>
+		</a>
+	</div>
+
+	<div class="dashboard-columns">
+		<section class="overview-panel">
+			<div class="panel-heading">
+				<div><p class="eyebrow">STOCK CONTROL</p><h2>Inventory health</h2></div>
+				<a routerLink="/inventory">View inventory <span aria-hidden="true">→</span></a>
+			</div>
+			<div class="stock-summary">
+				<div class="stock-total"><strong>{{ loading() ? '—' : inventory().length }}</strong><span>stock records</span></div>
+				<div class="stock-track" aria-label="Low stock records compared with all inventory records">
+					<span [style.width.%]="inventory().length ? (lowStock().length / inventory().length) * 100 : 0"></span>
+				</div>
+				<div class="stock-legend"><span><i class="legend-safe"></i>Within threshold</span><span><i class="legend-low"></i>Low stock {{ lowStock().length }}</span></div>
+			</div>
+			<div class="panel-footer"><span>Supplier accounts</span><strong>{{ loading() ? '—' : suppliers().length }}</strong></div>
+		</section>
+
+		<section class="quick-panel">
+			<p class="eyebrow">WORKSPACES</p>
+			<h2>Go to a workspace</h2>
+			<div class="quick-links">
+				<a routerLink="/products"><span class="quick-icon">▦</span><span><strong>Product catalog</strong><small>Products, SKUs, and pricing</small></span><b aria-hidden="true">→</b></a>
+				<a routerLink="/suppliers"><span class="quick-icon quick-icon-green">♧</span><span><strong>Supplier directory</strong><small>Contacts and account status</small></span><b aria-hidden="true">→</b></a>
+				<a routerLink="/warehouses"><span class="quick-icon quick-icon-gold">▤</span><span><strong>Warehouse network</strong><small>Locations and capacity</small></span><b aria-hidden="true">→</b></a>
+				<a routerLink="/orders"><span class="quick-icon quick-icon-red">▱</span><span><strong>Customer orders</strong><small>Fulfillment and order status</small></span><b aria-hidden="true">→</b></a>
+			</div>
+		</section>
+	</div>
+</section>

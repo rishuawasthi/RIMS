@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap');
+
+:root {
+	color-scheme: light;
+	--canvas: #f3f5f1;
+	--surface: #ffffff;
+	--ink: #1c302d;
+	--muted: #71817d;
+	--line: #dce4df;
+	--accent: #28776c;
+	--accent-strong: #1e6259;
+	font-family: 'DM Sans', 'Avenir Next', sans-serif;
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+body { min-width: 320px; min-height: 100vh; margin: 0; background: var(--canvas); color: var(--ink); }
+button, input, select, textarea { font: inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #d4a44f; outline-offset: 2px; }
+
+@media (max-width: 720px) {
+	.resource-heading { align-items: flex-start; flex-direction: column; }
+	.resource-heading .button { width: 100%; }
+	.form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.form-field-wide { grid-column: span 2; }
+	.resource-toolbar { padding: 0 10px; }
+	.resource-page td, .resource-page th { padding-right: 11px; padding-left: 11px; }
+}
+
+@media (max-width: 460px) {
+	.form-grid { grid-template-columns: 1fr; }
+	.form-field-wide { grid-column: auto; }
+	.editor-panel { padding: 15px; }
+}
