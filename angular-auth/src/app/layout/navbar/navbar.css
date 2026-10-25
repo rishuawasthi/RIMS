@@ -26,6 +26,24 @@
 .user-info strong { display: block; color: #233735; font-size: 12px; }
 .user-info span { display: block; margin-top: 3px; color: #788985; font-size: 10px; }
 
+.logout-btn {
+  background: transparent;
+  border: 1px solid var(--line, #dce4df);
+  color: #c81e1e;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: 6px;
+}
+
+.logout-btn:hover {
+  background: #fdf2f2;
+  border-color: #f8b4b4;
+}
+
 @media (max-width: 780px) {
   .navbar { height: 58px; padding: 0 18px; }
   .api-target { display: none; }

@@ -1,0 +1,83 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="brand-header">
+      <div class="brand-logo">RI</div>
+      <div class="brand-meta">
+        <span class="client-tag">XYZ RETAIL CORPORATION</span>
+        <h1 class="brand-title">RIMS Operations Portal</h1>
+        <p class="brand-subtitle">Project Code: PRG_RIMS_001</p>
+      </div>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="error-banner" role="alert">
+        <span class="error-icon">⚠</span>
+        <span class="error-text">{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <div class="input-wrap">
+          <input
+            id="username"
+            type="text"
+            formControlName="username"
+            placeholder="e.g. admin or john.doe"
+            autocomplete="username"
+            [class.invalid]="loginForm.controls.username.invalid && loginForm.controls.username.touched"
+          />
+        </div>
+        @if (loginForm.controls.username.invalid && loginForm.controls.username.touched) {
+          <span class="field-error">Username is required (min 3 characters)</span>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="Enter password"
+            autocomplete="current-password"
+            [class.invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
+          />
+          <button
+            type="button"
+            class="toggle-visibility"
+            (click)="togglePassword()"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+          >
+            {{ showPassword() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+        @if (loginForm.controls.password.invalid && loginForm.controls.password.touched) {
+          <span class="field-error">Password is required</span>
+        }
+      </div>
+
+      <button
+        type="submit"
+        class="submit-button"
+        [disabled]="loading()"
+      >
+        @if (loading()) {
+          <span class="spinner"></span>
+          <span>Signing in...</span>
+        } @else {
+          <span>Sign In to RIMS</span>
+        }
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <div class="security-notice">
+        <span class="lock-icon">🔒</span>
+        <span>Secured with JWT & Role-Based Access Control</span>
+      </div>
+    </div>
+  </div>
+</div>

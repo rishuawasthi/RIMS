@@ -1,17 +1,29 @@
 <header class="navbar">
 
   <div class="page-heading">
-    <span class="breadcrumb">RETAIL OPERATIONS</span>
-    <strong>Inventory control</strong>
+    <span class="breadcrumb">XYZ RETAIL OPERATIONS</span>
+    <strong>Inventory Control</strong>
   </div>
 
   <div class="navbar-actions">
     <span class="api-target"><i aria-hidden="true"></i> API · localhost:8083</span>
-    <div class="brand-chip" aria-hidden="true">S</div>
-    <div class="user-info">
-      <strong>Stockroom</strong>
-      <span>Operations console</span>
-    </div>
+
+    @if (currentUser(); as user) {
+      <div class="brand-chip" aria-hidden="true">{{ (user.fullName || user.username).charAt(0).toUpperCase() }}</div>
+      <div class="user-info">
+        <strong>{{ user.fullName || user.username }}</strong>
+        <span>{{ user.role }}</span>
+      </div>
+      <button type="button" class="logout-btn" (click)="logout()" title="Sign out of RIMS">
+        Sign Out
+      </button>
+    } @else {
+      <div class="brand-chip" aria-hidden="true">S</div>
+      <div class="user-info">
+        <strong>Stockroom</strong>
+        <span>Operations console</span>
+      </div>
+    }
   </div>
 
 </header>
