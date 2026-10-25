@@ -70,9 +70,9 @@ public class DataInitializer implements CommandLineRunner {
 
     private void seedUsers() {
         initOrUpdateUser("admin", "Password123!", "System Administrator", "admin@xyzretail.com", "9876543210", UserRole.ADMIN);
-        initOrUpdateUser("manager.north", "Password123!", "Rajesh Sharma", "rajesh.sharma@xyzretail.com", "9876543211", UserRole.INVENTORY_MANAGER);
-        initOrUpdateUser("staff.mumbai", "Password123!", "Pooja Verma", "pooja.verma@xyzretail.com", "9876543212", UserRole.STORE_STAFF);
-        initOrUpdateUser("auditor.lead", "Password123!", "Sunil Narang", "sunil.narang@xyzretail.com", "9876543213", UserRole.INVENTORY_MANAGER);
+        initOrUpdateUser("manager.north", "Password123!", "Rajesh Sharma", "rajesh.sharma@xyzretail.com", "9876543211", UserRole.STORE_MANAGER);
+        initOrUpdateUser("staff.mumbai", "Password123!", "Pooja Verma", "pooja.verma@xyzretail.com", "9876543212", UserRole.WAREHOUSE_STAFF);
+        initOrUpdateUser("auditor.lead", "Password123!", "Sunil Narang", "sunil.narang@xyzretail.com", "9876543213", UserRole.AUDITOR);
     }
 
     private void initOrUpdateUser(String username, String rawPassword, String fullName, String email, String phone, UserRole role) {
