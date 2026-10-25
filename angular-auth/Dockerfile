@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install dependencies first (cached unless package-lock.json changes)
 COPY package.json package-lock.json ./
-RUN npm ci --prefer-offline
+RUN npm install --prefer-offline
 
 # Copy source and build production bundle
 COPY . .
