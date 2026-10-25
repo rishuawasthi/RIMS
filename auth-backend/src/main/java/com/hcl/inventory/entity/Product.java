@@ -61,6 +61,10 @@ public class Product {
     @Column(length = 500)
     private String description;
 
+    @Size(max = 255, message = "Image URL cannot exceed 255 characters")
+    @Column(length = 255)
+    private String imageUrl;
+
     @NotBlank(message = "Unit is required")
     @Size(max = 20, message = "Unit cannot exceed 20 characters")
     @Column(nullable = false, length = 20)
@@ -143,6 +147,14 @@ public class Product {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public String getUnit() {

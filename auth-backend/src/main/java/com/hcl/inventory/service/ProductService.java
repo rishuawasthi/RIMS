@@ -73,6 +73,7 @@ public class ProductService {
         existingProduct.setSku(updatedProduct.getSku());
         existingProduct.setBrand(updatedProduct.getBrand());
         existingProduct.setDescription(updatedProduct.getDescription());
+        existingProduct.setImageUrl(updatedProduct.getImageUrl());
         existingProduct.setUnit(updatedProduct.getUnit());
 
         if (updatedProduct.getStatus() != null) {
