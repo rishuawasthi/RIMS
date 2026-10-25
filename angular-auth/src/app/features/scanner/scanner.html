@@ -1,0 +1,192 @@
+<div class="scanner-page">
+  <div class="header-card">
+    <div class="badge">HARDWARE EMULATION</div>
+    <h2>Barcode & RFID Verification Terminal</h2>
+    <p>Simulate handheld scanner verification and warehouse RFID gate batch processing.</p>
+
+    <div class="mode-tabs">
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="scanMode() === 'barcode'"
+        (click)="setMode('barcode')"
+      >
+        <span>🔍 Handheld Barcode Scanner</span>
+      </button>
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="scanMode() === 'rfid'"
+        (click)="setMode('rfid')"
+      >
+        <span>📡 Warehouse RFID Portal</span>
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert-box error" role="alert">
+      <span>⚠ {{ errorMessage() }}</span>
+    </div>
+  }
+
+  <!-- Barcode Scanner Tab -->
+  @if (scanMode() === 'barcode') {
+    <div class="terminal-grid">
+      <div class="terminal-panel">
+        <h3>Barcode / SKU Lookup</h3>
+        <p class="panel-desc">Scan or enter any product SKU to verify master data and multi-warehouse stock.</p>
+
+        <form [formGroup]="barcodeForm" (ngSubmit)="onBarcodeSubmit()" class="scan-form">
+          <div class="input-group">
+            <input
+              type="text"
+              formControlName="barcode"
+              placeholder="e.g. ELEC-LP-001 or APP-TS-010"
+              class="scan-input"
+            />
+            <button type="submit" class="scan-btn" [disabled]="loading()">
+              {{ loading() ? 'Scanning...' : 'Scan / Verify' }}
+            </button>
+          </div>
+        </form>
+
+        <div class="quick-samples">
+          <span>Quick Test SKUs:</span>
+          <button type="button" (click)="scanQuickSku('ELEC-LP-001')">ELEC-LP-001</button>
+          <button type="button" (click)="scanQuickSku('APP-TS-010')">APP-TS-010</button>
+          <button type="button" (click)="scanQuickSku('HOME-BL-101')">HOME-BL-101</button>
+        </div>
+      </div>
+
+      @if (scanResult(); as res) {
+        <div class="result-panel">
+          <div class="verified-tag">✓ VERIFIED IN CATALOG</div>
+          <h4 class="product-title">{{ res.product?.productName }}</h4>
+          <div class="sku-badge">SKU: {{ res.barcode }} · Category: {{ res.product?.productCategory }}</div>
+
+          <div class="metrics-row">
+            <div class="metric-chip">
+              <span class="label">Unit Price</span>
+              <strong>{{ res.product?.productPrice | currency:'INR':'symbol':'1.2-2' }}</strong>
+            </div>
+            <div class="metric-chip highlight">
+              <span class="label">Total On-Hand</span>
+              <strong>{{ res.totalOnHand }} {{ res.product?.unit }}</strong>
+            </div>
+            <div class="metric-chip">
+              <span class="label">Available Stock</span>
+              <strong>{{ res.totalAvailable }} {{ res.product?.unit }}</strong>
+            </div>
+          </div>
+
+          <div class="sub-table-wrap">
+            <h5>Stock Breakdown by Location</h5>
+            <table class="stock-table">
+              <thead>
+                <tr>
+                  <th>Warehouse</th>
+                  <th>On Hand</th>
+                  <th>Reserved</th>
+                  <th>Reorder Level</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (inv of res.warehouseStock; track inv.inventoryId) {
+                  <tr>
+                    <td>{{ inv.warehouse?.warehouseName }} ({{ inv.warehouse?.warehouseCode }})</td>
+                    <td><strong>{{ inv.quantity }}</strong></td>
+                    <td>{{ inv.reservedQuantity }}</td>
+                    <td>{{ inv.reorderLevel }}</td>
+                    <td><span class="status-pill">{{ inv.status }}</span></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- RFID Gate Tab -->
+  @if (scanMode() === 'rfid') {
+    <div class="terminal-grid">
+      <div class="terminal-panel">
+        <h3>RFID Bulk Inbound / Outbound Check</h3>
+        <p class="panel-desc">Simulate automated pallet reads passing through RFID warehouse reader gates.</p>
+
+        <form [formGroup]="rfidForm" (ngSubmit)="onRfidSubmit()" class="scan-form">
+          <div class="form-row">
+            <label>Target Warehouse ID</label>
+            <input type="number" formControlName="warehouseId" min="1" class="scan-input" />
+          </div>
+
+          <div class="form-row">
+            <label>Operation Type</label>
+            <select formControlName="operationType" class="scan-input">
+              <option value="INBOUND">Inbound Receiving (Restock)</option>
+              <option value="OUTBOUND">Outbound Fulfillment (Dispatch)</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label>PO / Order Reference</label>
+            <input type="text" formControlName="referenceNumber" class="scan-input" />
+          </div>
+
+          <div class="form-row">
+            <label>Scanned Tag SKUs (comma-separated)</label>
+            <textarea formControlName="tagsInput" rows="3" class="scan-input"></textarea>
+          </div>
+
+          <button type="submit" class="scan-btn" [disabled]="loading()">
+            {{ loading() ? 'Processing RFID Gates...' : 'Process RFID Batch Read' }}
+          </button>
+        </form>
+      </div>
+
+      @if (rfidResult(); as rfid) {
+        <div class="result-panel">
+          <div class="verified-tag">✓ RFID BATCH COMPLETED</div>
+          <h4>{{ rfid.operationType }} · {{ rfid.warehouse }}</h4>
+          <p class="reference">Ref: {{ rfid.referenceNumber }}</p>
+
+          <div class="metrics-row">
+            <div class="metric-chip">
+              <span class="label">Tags Read</span>
+              <strong>{{ rfid.totalTagsScanned }}</strong>
+            </div>
+            <div class="metric-chip highlight">
+              <span class="label">Successfully Audited</span>
+              <strong>{{ rfid.successfulScans }}</strong>
+            </div>
+          </div>
+
+          <div class="sub-table-wrap">
+            <h5>Gate Log Details</h5>
+            <table class="stock-table">
+              <thead>
+                <tr>
+                  <th>Tag Identifier</th>
+                  <th>Product Name</th>
+                  <th>Scan Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of rfid.scannedItems; track $index) {
+                  <tr>
+                    <td><code>{{ item.tag }}</code></td>
+                    <td>{{ item.productName || '—' }}</td>
+                    <td><span class="status-pill">{{ item.status }}</span></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
