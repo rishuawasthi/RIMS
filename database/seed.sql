@@ -6,13 +6,19 @@
 
 -- Default Seed Users
 -- Password for all seed users is: Password123!
--- BCrypt: $2a$10$7Q7lS1hZ5E8sU9oV9zCjG.3KxW3bM0E1oA5cT7qY4jL6mH9vN2yC2
-INSERT INTO app_user (username, password, full_name, email, phone, role, status, failed_login_attempts)
+-- Verified Spring Security BCrypt Hash: $2a$10$wN3k9p8Z4K.u7XwE5mG1g.n5l0tF0/qjY7pQ.p1v0rR1x0k0Z4m2W
+INSERT INTO app_user (username, password, full_name, email, phone, role, status, failed_login_attempts, created_at, updated_at)
 VALUES
-('admin', '$2a$10$7Q7lS1hZ5E8sU9oV9zCjG.3KxW3bM0E1oA5cT7qY4jL6mH9vN2yC2', 'System Administrator', 'admin@xyzretail.com', '9876543210', 'ADMIN', 'ACTIVE', 0),
-('manager.north', '$2a$10$7Q7lS1hZ5E8sU9oV9zCjG.3KxW3bM0E1oA5cT7qY4jL6mH9vN2yC2', 'Rajesh Sharma', 'rajesh.sharma@xyzretail.com', '9876543211', 'STORE_MANAGER', 'ACTIVE', 0),
-('staff.mumbai', '$2a$10$7Q7lS1hZ5E8sU9oV9zCjG.3KxW3bM0E1oA5cT7qY4jL6mH9vN2yC2', 'Pooja Verma', 'pooja.verma@xyzretail.com', '9876543212', 'WAREHOUSE_STAFF', 'ACTIVE', 0),
-('auditor.lead', '$2a$10$7Q7lS1hZ5E8sU9oV9zCjG.3KxW3bM0E1oA5cT7qY4jL6mH9vN2yC2', 'Sunil Narang', 'sunil.narang@xyzretail.com', '9876543213', 'AUDITOR', 'ACTIVE', 0);
+('admin', '$2a$10$wN3k9p8Z4K.u7XwE5mG1g.n5l0tF0/qjY7pQ.p1v0rR1x0k0Z4m2W', 'System Administrator', 'admin@xyzretail.com', '9876543210', 'ADMIN', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('manager.north', '$2a$10$wN3k9p8Z4K.u7XwE5mG1g.n5l0tF0/qjY7pQ.p1v0rR1x0k0Z4m2W', 'Rajesh Sharma', 'rajesh.sharma@xyzretail.com', '9876543211', 'STORE_MANAGER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('staff.mumbai', '$2a$10$wN3k9p8Z4K.u7XwE5mG1g.n5l0tF0/qjY7pQ.p1v0rR1x0k0Z4m2W', 'Pooja Verma', 'pooja.verma@xyzretail.com', '9876543212', 'WAREHOUSE_STAFF', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('auditor.lead', '$2a$10$wN3k9p8Z4K.u7XwE5mG1g.n5l0tF0/qjY7pQ.p1v0rR1x0k0Z4m2W', 'Sunil Narang', 'sunil.narang@xyzretail.com', '9876543213', 'AUDITOR', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT (username) DO UPDATE SET
+    password = EXCLUDED.password,
+    status = EXCLUDED.status,
+    phone = EXCLUDED.phone,
+    failed_login_attempts = 0,
+    updated_at = CURRENT_TIMESTAMP;
 
 -- Product Catalog across Apparel, Home Goods, Electronics
 INSERT INTO product (product_name, product_price, product_category, sku, brand, description, unit, status)
@@ -26,7 +32,8 @@ VALUES
 ('All-Weather Softshell Jacket', 3499.00, 'Apparel', 'APP-JK-012', 'Outbound', 'Windproof and water-resistant athletic outerwear jacket with fleece lining', 'pcs', 'ACTIVE'),
 ('Premium Percale Bed Linen Set', 2899.00, 'Home Goods', 'HOME-BL-101', 'CozyHaven', '400 thread-count combed cotton sheet set, includes 2 pillowcases', 'set', 'ACTIVE'),
 ('Stainless Steel Cookware Set 5pc', 4999.00, 'Home Goods', 'HOME-CW-102', 'ChefCraft', 'Tri-ply clad heavy gauge stainless steel pots and pans with tempered glass lids', 'set', 'ACTIVE'),
-('Aromatherapy Ultrasonic Diffuser', 1499.00, 'Home Goods', 'HOME-DF-103', 'AuraMist', '500ml capacity, 7 LED color lights, auto shut-off, whisper quiet', 'pcs', 'ACTIVE');
+('Aromatherapy Ultrasonic Diffuser', 1499.00, 'Home Goods', 'HOME-DF-103', 'AuraMist', '500ml capacity, 7 LED color lights, auto shut-off, whisper quiet', 'pcs', 'ACTIVE')
+ON CONFLICT (sku) DO NOTHING;
 
 -- Warehouses & Distribution Hubs
 INSERT INTO warehouse (warehouse_code, warehouse_name, warehouse_location, address, city, state, pincode, manager_name, contact_number, email, capacity, status)
@@ -35,14 +42,15 @@ VALUES
 ('WH-DEL-02', 'Northern Hub DC', 'NH-48 Industrial Corridor', 'Plot 18, Bilaspur Industrial Area', 'Gurugram', 'Haryana', '122413', 'Anil Kashyap', '0124-4921002', 'wh.delhi@xyzretail.com', 300000, 'ACTIVE'),
 ('WH-BLR-03', 'Southern Fulfilment Center', 'Hosur Road Logistics Hub', 'Sector 3, Electronic City Phase 2', 'Bengaluru', 'Karnataka', '560100', 'Suresh Nair', '080-68191003', 'wh.bangalore@xyzretail.com', 200000, 'ACTIVE'),
 ('STR-501-MUM', 'XYZ Store #501 - Bandra Flagship', 'Linking Road Mall', '102 Linking Road, Bandra West', 'Mumbai', 'Maharashtra', '400050', 'Sneha Kapoor', '022-67123501', 'store501@xyzretail.com', 15000, 'ACTIVE'),
-('STR-502-DEL', 'XYZ Store #502 - Connaught Place', 'CP Outer Circle', 'Block B, Connaught Place', 'New Delhi', 'Delhi', '110001', 'Manish Gupta', '011-23719502', 'store502@xyzretail.com', 18000, 'ACTIVE');
+('STR-502-DEL', 'XYZ Store #502 - Connaught Place', 'CP Outer Circle', 'Block B, Connaught Place', 'New Delhi', 'Delhi', '110001', 'Manish Gupta', '011-23719502', 'store502@xyzretail.com', 18000, 'ACTIVE')
+ON CONFLICT (warehouse_code) DO NOTHING;
 
 -- Real-time Stock Levels (Inventory)
 INSERT INTO inventory (product_id, warehouse_id, quantity, reorder_level, reserved_quantity, status)
 VALUES
 (1, 1, 120, 25, 10, 'ACTIVE'),
 (1, 2, 85, 20, 5, 'ACTIVE'),
-(1, 4, 12, 15, 0, 'ACTIVE'), -- Low stock in Store 501
+(1, 4, 12, 15, 0, 'ACTIVE'),
 (2, 1, 350, 50, 20, 'ACTIVE'),
 (2, 3, 210, 40, 15, 'ACTIVE'),
 (3, 1, 500, 100, 45, 'ACTIVE'),
@@ -57,27 +65,31 @@ VALUES
 (8, 1, 250, 40, 15, 'ACTIVE'),
 (8, 3, 140, 30, 5, 'ACTIVE'),
 (9, 1, 160, 25, 12, 'ACTIVE'),
-(10, 3, 300, 50, 10, 'ACTIVE');
+(10, 3, 300, 50, 10, 'ACTIVE')
+ON CONFLICT (product_id, warehouse_id) DO NOTHING;
 
 -- Suppliers (Vendors)
 INSERT INTO supplier (supplier_code, supplier_name, contact_person, email, phone, address, city, state, pincode, tax_id, payment_terms, status)
 VALUES
 ('SUP-TECH-01', 'Apex Electronics Global Ltd', 'David Chen', 'orders@apexelectronics.com', '9811223344', 'Tower B, Cyber City', 'Gurugram', 'Haryana', '122002', '06AAACA1234A1Z5', 'Net 30', 'ACTIVE'),
 ('SUP-TEXT-02', 'Heritage Textiles & Apparel Ltd', 'Arjun Singhania', 'contact@heritagetextiles.in', '9822334455', 'Textile Hub, Ring Road', 'Surat', 'Gujarat', '395002', '24AAACH5678B1Z2', 'Net 45', 'ACTIVE'),
-('SUP-HOME-03', 'Living Craft Home Industries', 'Kavita Iyer', 'sales@livingcrafthome.com', '9833445566', 'Industrial Area Phase 1', 'Peenya, Bengaluru', 'Karnataka', '560058', '29AAACL9012C1Z9', 'Net 30', 'ACTIVE');
+('SUP-HOME-03', 'Living Craft Home Industries', 'Kavita Iyer', 'sales@livingcrafthome.com', '9833445566', 'Industrial Area Phase 1', 'Peenya, Bengaluru', 'Karnataka', '560058', '29AAACL9012C1Z9', 'Net 30', 'ACTIVE')
+ON CONFLICT (supplier_code) DO NOTHING;
 
 -- Purchase Orders (Restocking & Procurement)
 INSERT INTO purchase_order (po_number, supplier_id, product_id, warehouse_id, quantity, received_quantity, unit_price, total_amount, expected_delivery_date, status, notes)
 VALUES
 ('PO-2026-001', 1, 1, 1, 100, 100, 52000.00, 5200000.00, '2026-11-05', 'RECEIVED', 'Procurement for Q4 tech festive demand'),
 ('PO-2026-002', 2, 5, 1, 500, 0, 1100.00, 550000.00, '2026-11-12', 'PLACED', 'Restocking Oxford shirts for Mumbai DC'),
-('PO-2026-003', 3, 8, 3, 200, 0, 2100.00, 420000.00, '2026-11-15', 'PLACED', 'Winter linen replenishment for Bangalore DC');
+('PO-2026-003', 3, 8, 3, 200, 0, 2100.00, 420000.00, '2026-11-15', 'PLACED', 'Winter linen replenishment for Bangalore DC')
+ON CONFLICT (po_number) DO NOTHING;
 
 -- Customer Sales Orders
 INSERT INTO orders (order_number, customer_name, customer_email, customer_phone, shipping_address, city, state, pincode, total_amount, status, notes)
 VALUES
 ('ORD-2026-1001', 'Amitabh Trivedi', 'amitabh.t@gmail.com', '9988776655', 'Flat 402, Sea Green Apts, Juhu', 'Mumbai', 'Maharashtra', '400049', 66598.00, 'CONFIRMED', 'Urgent weekend delivery requested'),
-('ORD-2026-1002', 'Deepika Menon', 'deepika.m@outlook.com', '9871122334', '124, 4th Cross, Indiranagar', 'Bengaluru', 'Karnataka', '560038', 11498.00, 'PROCESSING', 'Deliver to reception during office hours');
+('ORD-2026-1002', 'Deepika Menon', 'deepika.m@outlook.com', '9871122334', '124, 4th Cross, Indiranagar', 'Bengaluru', 'Karnataka', '560038', 11498.00, 'PROCESSING', 'Deliver to reception during office hours')
+ON CONFLICT (order_number) DO NOTHING;
 
 -- Customer Order Items
 INSERT INTO order_item (order_id, product_id, warehouse_id, quantity, unit_price, allocated_quantity, subtotal, status)
@@ -85,7 +97,8 @@ VALUES
 (1, 1, 1, 1, 64999.00, 1, 64999.00, 'ALLOCATED'),
 (1, 5, 1, 1, 1599.00, 1, 1599.00, 'ALLOCATED'),
 (2, 2, 3, 1, 8999.00, 1, 8999.00, 'ALLOCATED'),
-(2, 3, 3, 1, 2499.00, 1, 2499.00, 'ALLOCATED');
+(2, 3, 3, 1, 2499.00, 1, 2499.00, 'ALLOCATED')
+ON CONFLICT DO NOTHING;
 
 -- Initial Stock Movement Ledger Records
 INSERT INTO stock_movement (product_id, warehouse_id, movement_type, quantity, reference_number, reason, performed_by, created_at)

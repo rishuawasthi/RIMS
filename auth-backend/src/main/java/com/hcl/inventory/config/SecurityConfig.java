@@ -50,8 +50,8 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        // Login endpoint — open to everyone
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                        // Login endpoint — open to everyone (both /auth/login and /api/auth/login)
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/api/auth/login").permitAll()
 
                         // Swagger / OpenAPI — open in dev
                         .requestMatchers(

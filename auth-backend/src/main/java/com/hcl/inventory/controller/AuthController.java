@@ -27,7 +27,7 @@ import java.util.Optional;
  * All other endpoints require a valid Bearer token.
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping({"/auth", "/api/auth"})
 @Tag(name = "Authentication", description = "Issue and validate JWT tokens")
 public class AuthController {
 
@@ -46,20 +46,25 @@ public class AuthController {
     }
 
     /**
-     * Authenticate with username + password and receive a JWT.
+     * Authenticate with username/email + password and receive a JWT.
      *
      * <ul>
      *   <li>Returns 200 + {@link AuthResponse} on success.</li>
      *   <li>Returns 401 when credentials are wrong or account is inactive/locked.</li>
      * </ul>
      */
-    @Operation(summary = "Login", description = "Provide username and password to receive a JWT access token.")
+    @Operation(summary = "Login", description = "Provide username or email and password to receive a JWT access token.")
     @PostMapping("/login")
     public ResponseEntity<?> login(
             @Valid @RequestBody LoginRequest request
     ) {
-        Optional<AppUser> userOpt = userRepository
-                .findByUsernameIgnoreCase(request.getUsername().trim());
+        String identifier = request.getUsername() != null ? request.getUsername().trim() : "";
+        Optional<AppUser> userOpt = userRepository.findByUsernameIgnoreCase(identifier);
+        
+        // Also allow login with email address
+        if (userOpt.isEmpty() && identifier.contains("@")) {
+            userOpt = userRepository.findByEmailIgnoreCase(identifier);
+        }
 
         if (userOpt.isEmpty()) {
             return unauthorized("Invalid username or password.");
