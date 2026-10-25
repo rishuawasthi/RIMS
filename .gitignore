@@ -1,0 +1,54 @@
+# =============================================================================
+# Retail Inventory Management System (RIMS) - Root .gitignore
+# =============================================================================
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment and Secrets
+.env
+*.env.local
+*.env.production
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.settings/
+.project
+.classpath
+bin/
+
+# Java & Maven Build Artifacts
+**/target/
+auth-backend/target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+
+# Node.js & Angular Build Artifacts
+**/node_modules/
+angular-auth/node_modules/
+angular-auth/dist/
+angular-auth/.angular/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Terraform
+infrastructure/.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Docker & Local Data
+docker/data/
+rims_pgdata/

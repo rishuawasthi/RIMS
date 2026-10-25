@@ -1,0 +1,75 @@
+version: '3.9'
+
+services:
+
+  # ── PostgreSQL database ────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: rims-db
+    environment:
+      POSTGRES_DB: hcl
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1909
+    ports:
+      - "5432:5432"
+    volumes:
+      - rims_pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hcl"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rims-net
+
+  # ── Spring Boot API backend ────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./auth-backend
+      dockerfile: Dockerfile
+    container_name: rims-backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/hcl
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 1909
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # Override the JWT secret in production!
+      RIMS_JWT_SECRET: RimsSecretKey2026XyzRetailCorporationSuperSecure!ChangeThisInProd
+      RIMS_JWT_EXPIRATION_MS: 86400000
+    ports:
+      - "8083:8083"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rims-net
+
+  # ── Angular frontend (nginx) ───────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./angular-auth
+      dockerfile: Dockerfile
+    container_name: rims-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - rims-net
+
+# ── Named volumes ──────────────────────────────────────────────────────────
+volumes:
+  rims_pgdata:
+
+# ── Networks ───────────────────────────────────────────────────────────────
+networks:
+  rims-net:
+    driver: bridge
