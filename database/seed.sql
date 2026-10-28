@@ -38,11 +38,11 @@ ON CONFLICT (sku) DO NOTHING;
 -- Warehouses & Distribution Hubs
 INSERT INTO warehouse (warehouse_code, warehouse_name, warehouse_location, address, city, state, pincode, manager_name, contact_number, email, capacity, status)
 VALUES
-('WH-MUM-01', 'Western Central DC', 'Bhiwandi Logistics Park', 'Bldg 4A, Bhiwandi Highway Zone', 'Mumbai', 'Maharashtra', '421302', 'Vikram Deshmukh', '022-28491001', 'wh.mumbai@xyzretail.com', 250000, 'ACTIVE'),
-('WH-DEL-02', 'Northern Hub DC', 'NH-48 Industrial Corridor', 'Plot 18, Bilaspur Industrial Area', 'Gurugram', 'Haryana', '122413', 'Anil Kashyap', '0124-4921002', 'wh.delhi@xyzretail.com', 300000, 'ACTIVE'),
-('WH-BLR-03', 'Southern Fulfilment Center', 'Hosur Road Logistics Hub', 'Sector 3, Electronic City Phase 2', 'Bengaluru', 'Karnataka', '560100', 'Suresh Nair', '080-68191003', 'wh.bangalore@xyzretail.com', 200000, 'ACTIVE'),
-('STR-501-MUM', 'XYZ Store #501 - Bandra Flagship', 'Linking Road Mall', '102 Linking Road, Bandra West', 'Mumbai', 'Maharashtra', '400050', 'Sneha Kapoor', '022-67123501', 'store501@xyzretail.com', 15000, 'ACTIVE'),
-('STR-502-DEL', 'XYZ Store #502 - Connaught Place', 'CP Outer Circle', 'Block B, Connaught Place', 'New Delhi', 'Delhi', '110001', 'Manish Gupta', '011-23719502', 'store502@xyzretail.com', 18000, 'ACTIVE')
+('WH-MUM-01', 'Western Central DC', 'Bhiwandi Logistics Park', 'Bldg 4A, Bhiwandi Highway Zone', 'Mumbai', 'Maharashtra', '421302', 'Vikram Deshmukh', '02228491001', 'wh.mumbai@xyzretail.com', 250000, 'ACTIVE'),
+('WH-DEL-02', 'Northern Hub DC', 'NH-48 Industrial Corridor', 'Plot 18, Bilaspur Industrial Area', 'Gurugram', 'Haryana', '122413', 'Anil Kashyap', '01244921002', 'wh.delhi@xyzretail.com', 300000, 'ACTIVE'),
+('WH-BLR-03', 'Southern Fulfilment Center', 'Hosur Road Logistics Hub', 'Sector 3, Electronic City Phase 2', 'Bengaluru', 'Karnataka', '560100', 'Suresh Nair', '08068191003', 'wh.bangalore@xyzretail.com', 200000, 'ACTIVE'),
+('STR-501-MUM', 'XYZ Store #501 - Bandra Flagship', 'Linking Road Mall', '102 Linking Road, Bandra West', 'Mumbai', 'Maharashtra', '400050', 'Sneha Kapoor', '02267123501', 'store501@xyzretail.com', 15000, 'ACTIVE'),
+('STR-502-DEL', 'XYZ Store #502 - Connaught Place', 'CP Outer Circle', 'Block B, Connaught Place', 'New Delhi', 'Delhi', '110001', 'Manish Gupta', '01123719502', 'store502@xyzretail.com', 18000, 'ACTIVE')
 ON CONFLICT (warehouse_code) DO NOTHING;
 
 -- Real-time Stock Levels (Inventory)

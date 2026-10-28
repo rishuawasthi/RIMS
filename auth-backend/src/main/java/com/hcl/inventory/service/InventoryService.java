@@ -267,6 +267,21 @@ public class InventoryService {
 
     @Transactional
     public Map<String, Object> transferStock(StockTransferRequest request) {
+        if (request == null) {
+            throw new InvalidInventoryQuantityException("Stock transfer request cannot be null");
+        }
+        if (request.getProductId() == null) {
+            throw new ProductNotFoundException("Product ID is required for stock transfer");
+        }
+        if (request.getFromWarehouseId() == null) {
+            throw new WarehouseNotFoundException("Source warehouse ID is required for stock transfer");
+        }
+        if (request.getToWarehouseId() == null) {
+            throw new WarehouseNotFoundException("Destination warehouse ID is required for stock transfer");
+        }
+        if (request.getQuantity() == null || request.getQuantity() <= 0) {
+            throw new InvalidInventoryQuantityException("Transfer quantity must be greater than zero");
+        }
         if (request.getFromWarehouseId().equals(request.getToWarehouseId())) {
             throw new InvalidInventoryQuantityException("Source and destination warehouses cannot be the same");
         }
@@ -280,11 +295,13 @@ public class InventoryService {
         Warehouse toWarehouse = warehouseRepository.findById(request.getToWarehouseId())
                 .orElseThrow(() -> new WarehouseNotFoundException("Destination warehouse with id " + request.getToWarehouseId() + " not found"));
 
-        Inventory sourceInv = inventoryRepository.findByProductProductIdAndWarehouseWarehouseId(
+        // Protect inventory updates against concurrent transfers using pessimistic locking
+        Inventory sourceInv = inventoryRepository.findByProductProductIdAndWarehouseWarehouseIdWithLock(
                 request.getProductId(), request.getFromWarehouseId())
                 .orElseThrow(() -> new InventoryNotFoundException("Stock record for product in source warehouse not found"));
 
-        int available = sourceInv.getQuantity() - sourceInv.getReservedQuantity();
+        int reserved = sourceInv.getReservedQuantity() != null ? sourceInv.getReservedQuantity() : 0;
+        int available = sourceInv.getQuantity() - reserved;
         if (available < request.getQuantity()) {
             throw new InvalidInventoryQuantityException("Insufficient unreserved stock in source warehouse. Available: "
                     + available + ", requested: " + request.getQuantity());
@@ -294,8 +311,8 @@ public class InventoryService {
         sourceInv.setQuantity(sourceInv.getQuantity() - request.getQuantity());
         inventoryRepository.save(sourceInv);
 
-        // Add to destination warehouse
-        Inventory targetInv = inventoryRepository.findByProductProductIdAndWarehouseWarehouseId(
+        // Add to destination warehouse (with lock if exists)
+        Inventory targetInv = inventoryRepository.findByProductProductIdAndWarehouseWarehouseIdWithLock(
                 request.getProductId(), request.getToWarehouseId())
                 .orElseGet(() -> {
                     Inventory newInv = new Inventory();
@@ -311,7 +328,7 @@ public class InventoryService {
         targetInv.setQuantity(targetInv.getQuantity() + request.getQuantity());
         inventoryRepository.save(targetInv);
 
-        // Audit Stock Movement Ledger
+        // Audit Stock Movement Ledger - recorded only upon successful transfer execution
         String ref = request.getReferenceNumber() != null && !request.getReferenceNumber().isBlank()
                 ? request.getReferenceNumber().trim()
                 : "TRF-" + System.currentTimeMillis();

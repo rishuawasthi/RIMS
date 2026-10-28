@@ -27,8 +27,13 @@ public class JwtUtil {
             @Value("${rims.jwt.secret}") String secret,
             @Value("${rims.jwt.expiration-ms:86400000}") long expirationMs
     ) {
+        if (secret == null || secret.trim().length() < 32) {
+            throw new IllegalArgumentException(
+                    "JWT signing secret ('rims.jwt.secret') must be at least 32 characters (256 bits) long for secure HS256 signing."
+            );
+        }
         // Ensure the key is at least 256 bits (32 bytes) for HS256
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes = secret.trim().getBytes(StandardCharsets.UTF_8);
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.expirationMs = expirationMs;
     }

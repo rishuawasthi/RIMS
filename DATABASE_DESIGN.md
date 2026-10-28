@@ -228,7 +228,7 @@ Master profiles for commercial vendors, suppliers, and distributors.
 |:---|:---|:---|:---|:---|
 | `supplier_id` | SERIAL | NO | PRIMARY KEY | Unique surrogate identifier |
 | `supplier_code` | VARCHAR(50) | NO | UNIQUE | Vendor account code |
-| `supplier_name` | VARCHAR(100) | NO | — | Company legal entity name |
+| `supplier_name` | VARCHAR(150) | NO | — | Company legal entity name (up to 150 chars, matching JPA entity) |
 | `contact_person` | VARCHAR(100) | YES | NULL | Primary account representative |
 | `email` | VARCHAR(100) | NO | UNIQUE | Procurement contact email |
 | `phone` | VARCHAR(20) | NO | — | Commercial phone number |
@@ -279,8 +279,8 @@ Outbound sales orders placed by customers across retail channels.
 |:---|:---|:---|:---|:---|
 | `order_id` | SERIAL | NO | PRIMARY KEY | Unique surrogate identifier |
 | `order_number` | VARCHAR(50) | NO | UNIQUE | Business reference number (e.g., ORD-2026-0001) |
-| `customer_name` | VARCHAR(100) | NO | — | Customer full name |
-| `customer_email` | VARCHAR(100) | NO | — | Customer email address |
+| `customer_name` | VARCHAR(150) | NO | — | Customer full name (up to 150 chars, matching JPA entity) |
+| `customer_email` | VARCHAR(150) | YES | NULL | Customer email address (optional, matching JPA entity) |
 | `customer_phone` | VARCHAR(20) | YES | NULL | Customer phone |
 | `shipping_address` | VARCHAR(255) | NO | — | Physical shipping delivery address |
 | `city` | VARCHAR(50) | NO | — | Destination city |
@@ -305,7 +305,7 @@ Detailed line items representing individual product quantities within a sales or
 | `order_item_id` | SERIAL | NO | PRIMARY KEY | Unique surrogate identifier |
 | `order_id` | INT | NO | REFERENCES orders(order_id) ON DELETE CASCADE | Parent order reference |
 | `product_id` | INT | NO | REFERENCES product(product_id) | Master product reference |
-| `warehouse_id` | INT | NO | REFERENCES warehouse(warehouse_id) | Fulfillment warehouse location |
+| `warehouse_id` | INT | YES | REFERENCES warehouse(warehouse_id) | Fulfillment warehouse location (nullable during draft order intake) |
 | `quantity` | INT | NO | CHECK (quantity > 0) | Quantity ordered |
 | `unit_price` | NUMERIC(12,2) | NO | CHECK (unit_price > 0) | Sale price at time of order intake |
 | `allocated_quantity` | INT | NO | DEFAULT 0, CHECK (allocated_quantity >= 0) | Quantity physically reserved from warehouse inventory |
@@ -338,3 +338,13 @@ Immutable, append-only double-entry ledger recording all physical stock changes.
 - `idx_movement_product` on `product_id`
 - `idx_movement_warehouse` on `warehouse_id`
 - `idx_movement_created` on `created_at DESC`
+
+---
+
+## 3. Safe Migration Strategy & Non-Destructive DDL
+
+To ensure zero accidental data loss during ordinary updates or application restarts:
+1. **Idempotent Initialization:** `database/schema.sql` employs strictly non-destructive `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS` clauses without any `DROP TABLE ... CASCADE` statements.
+2. **Dedicated Teardown:** Destructive resets are strictly isolated in `database/reset.sql` and must never be triggered automatically.
+3. **Seed Idempotency:** `database/seed.sql` utilizes `ON CONFLICT (...) DO NOTHING` and `ON CONFLICT (...) DO UPDATE` ensuring re-running seed scripts never overwrites existing production records.
+4. **Entity Schema Parity:** JPA entity mappings across `AppUser`, `Product`, `Warehouse`, `Inventory`, `Supplier`, `PurchaseOrder`, `Order`, `OrderItem`, and `StockMovement` are synchronized with the physical schema definition. Full migration workflow guidelines are documented in `database/MIGRATION_STRATEGY.md`.

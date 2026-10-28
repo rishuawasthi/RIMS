@@ -140,7 +140,7 @@ Ensure [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docke
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/xyz-retail/RIMS.git
+git clone https://github.com/rishuawasthi/RIMS.git
 cd RIMS
 
 # 2. Copy environment template
@@ -154,25 +154,26 @@ Access the applications:
 - **RIMS Web Application:** `http://localhost:80`
 - **Spring Boot REST API:** `http://localhost:8080`
 - **Swagger / OpenAPI Documentation:** `http://localhost:8080/swagger-ui.html`
-- **PostgreSQL Database:** `localhost:5432` (`hcl` / `postgres` / `1909`)
+- **PostgreSQL Database:** `localhost:5432` (`hcl` / `postgres` / password configured in `.env`)
 
 ---
 
 ### Option B: Local Development Setup (Bare Metal)
 
 #### 1. Database Setup
-Start a local PostgreSQL server on port `5432`, create database `hcl`, and run the schema and seed scripts:
+Start a local PostgreSQL server on port `5432`, create database `hcl`, and run the non-destructive schema and idempotent seed scripts:
 ```bash
 psql -U postgres -d hcl -f database/schema.sql
 psql -U postgres -d hcl -f database/seed.sql
 ```
+*(Note: To execute a destructive teardown that drops all tables and data, explicitly use `psql -U postgres -d hcl -f database/reset.sql` as documented in `database/MIGRATION_STRATEGY.md`.)*
 
 #### 2. Backend API Setup
 ```bash
 cd auth-backend
 
 # Verify dependencies and run tests
-./mvnw clean test
+./mvnw test
 
 # Run Spring Boot application (launches on port 8080)
 ./mvnw spring-boot:run
@@ -197,12 +198,17 @@ When the backend is running, the interactive OpenAPI specification is available 
 | `GET` | `/products/search/name?name={q}` | Search catalog by product name |
 | `GET` / `POST` | `/inventory` | List multi-warehouse stock levels / Add inventory |
 | `GET` | `/inventory/low-stock` | Retrieve SKUs falling below reorder threshold |
+| `POST` | `/inventory/transfer` | Transfer stock between warehouses with pessimistic locking |
+| `GET` / `POST` | `/orders` | List sales orders / Create new sales order |
+| `PUT` | `/orders/{id}/confirm` | Confirm order and allocate inventory reservations |
+| `PUT` | `/orders/{id}/ship` | Ship order and decrement physical/reserved stock |
+| `PUT` | `/orders/{id}/cancel` | Cancel order and release reservations |
 | `GET` / `POST` | `/stock-movements` | Query stock movement audit ledger / Record transfer |
-| `GET` | `/scanner/scan?barcode={sku}` | Emulate barcode scanner for instant stock lookup |
-| `POST` | `/scanner/rfid-batch` | Emulate RFID antenna batch scan for inbound/outbound |
+| `GET` | `/scanner/scan?barcode={sku}` | Simulated barcode scanner for SKU lookup |
+| `POST` | `/scanner/rfid-batch` | Simulated RFID antenna batch scan for audit lookup |
 | `GET` | `/analytics/kpis` | Executive KPI dashboard metrics and inventory valuation |
 | `GET` | `/analytics/categories` | Stock valuation breakdown by product category |
-| `GET` | `/integration/erp/status` | Check SAP / NetSuite integration connector health |
+| `GET` | `/integration/erp/status` | Simulated SAP / NetSuite integration connector status |
 | `GET` | `/integration/erp/export-inventory` | Generate standardized ERP snapshot export payload |
 
 ---
@@ -214,15 +220,21 @@ When the backend is running, the interactive OpenAPI specification is available 
 cd auth-backend
 ./mvnw test
 ```
-Test suite includes:
-- `ProductServiceTest`: Catalog CRUD, duplicate SKU rejection, category/brand search.
-- `AppUserServiceTest`: Password hashing, duplicate checks, account locking, password change.
-- `InventoryServiceTest`: Multi-warehouse stock tracking, low-stock threshold queries.
+Test suite includes 58 automated tests:
+- `InventoryApplicationTests`: Spring Boot application context bootstrap with H2 in-memory test database.
+- `AppUserServiceTest`: User authentication, BCrypt hashing, duplicate checks, account locking, password change.
+- `InventoryServiceTest`: Multi-warehouse stock tracking, low-stock threshold queries, stock transfer validation, unreserved stock checks, and pessimistic lock concurrency protection.
+- `OrderServiceTest`: Order lifecycle transitions (confirm, pick, pack, ship, cancel), inventory reservation locking, double-reservation prevention, invariant underflow protection, and simulated concurrent allocation tests.
+- `ProductServiceTest`: Product catalog CRUD, duplicate SKU rejection, category/brand search.
 
 ### Frontend Component & Service Tests (Vitest)
 ```bash
 cd angular-auth
-npm test -- --run
+npm test -- --no-watch
+```
+Runs 19 unit tests across 18 test spec files via Vitest and JSDOM. Production bundle build can be verified via:
+```bash
+npm run build
 ```
 
 ---

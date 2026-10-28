@@ -32,11 +32,11 @@ jobs:
       - name: Ensure Maven wrapper is executable
         run: chmod +x ./mvnw
 
-      - name: Run Unit Tests (Resilient)
-        run: ./mvnw test -Dspring.profiles.active=test || true
+      - name: Run Backend Tests
+        run: ./mvnw -B test
 
       - name: Build and Package Backend
-        run: ./mvnw clean package -DskipTests -B
+        run: ./mvnw -B package -DskipTests
 
       - name: Publish Test Report
         if: always()
@@ -70,8 +70,8 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Run Unit Tests
-        run: npm test -- --watch=false --browsers=ChromeHeadless || true
+      - name: Run Frontend Tests
+        run: npm test -- --no-watch
 
       - name: Build Production Bundle
         run: npm run build --configuration=production

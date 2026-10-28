@@ -123,7 +123,7 @@ public class OrderService {
 
     @Transactional
     public Order confirmOrder(Integer orderId) {
-        Order order = getOrderById(orderId);
+        Order order = getOrderByIdWithLock(orderId);
 
         if (order.getStatus() != OrderStatus.DRAFT) {
             throw new InvalidOrderException("Only DRAFT orders can be confirmed");
@@ -135,20 +135,35 @@ public class OrderService {
             throw new InvalidOrderException("An order must contain at least one item before confirmation");
         }
 
-        // Execute atomic stock reservation for all order items
+        // Sort items deterministically to avoid deadlocks during concurrent multi-item allocations
+        items.sort((a, b) -> {
+            int pComp = Integer.compare(
+                    a.getProduct() != null && a.getProduct().getProductId() != null ? a.getProduct().getProductId() : 0,
+                    b.getProduct() != null && b.getProduct().getProductId() != null ? b.getProduct().getProductId() : 0
+            );
+            if (pComp != 0) return pComp;
+            return Integer.compare(
+                    a.getWarehouse() != null && a.getWarehouse().getWarehouseId() != null ? a.getWarehouse().getWarehouseId() : 0,
+                    b.getWarehouse() != null && b.getWarehouse().getWarehouseId() != null ? b.getWarehouse().getWarehouseId() : 0
+            );
+        });
+
+        // Execute atomic stock reservation for all order items with pessimistic locking
         if (inventoryRepository != null) {
             for (OrderItem item : items) {
                 if (item.getWarehouse() == null) {
                     throw new InvalidOrderException("Warehouse must be assigned for product "
-                            + item.getProduct().getSku() + " to allocate inventory");
+                            + (item.getProduct() != null ? item.getProduct().getSku() : "unknown")
+                            + " to allocate inventory");
                 }
 
-                Inventory inv = inventoryRepository.findByProductProductIdAndWarehouseWarehouseId(
+                Inventory inv = inventoryRepository.findByProductProductIdAndWarehouseWarehouseIdWithLock(
                         item.getProduct().getProductId(), item.getWarehouse().getWarehouseId())
                         .orElseThrow(() -> new InvalidOrderException("No inventory record found for product "
                                 + item.getProduct().getSku() + " in warehouse " + item.getWarehouse().getWarehouseCode()));
 
-                int available = inv.getQuantity() - inv.getReservedQuantity();
+                int reserved = inv.getReservedQuantity() != null ? inv.getReservedQuantity() : 0;
+                int available = inv.getQuantity() - reserved;
                 if (available < item.getQuantity()) {
                     throw new InvalidOrderException("Insufficient available stock for SKU "
                             + item.getProduct().getSku() + " in warehouse "
@@ -156,7 +171,7 @@ public class OrderService {
                             + ", Requested: " + item.getQuantity());
                 }
 
-                inv.setReservedQuantity(inv.getReservedQuantity() + item.getQuantity());
+                inv.setReservedQuantity(reserved + item.getQuantity());
                 inventoryRepository.save(inv);
 
                 item.setAllocatedQuantity(item.getQuantity());
@@ -173,7 +188,7 @@ public class OrderService {
 
     @Transactional
     public Order pickOrder(Integer orderId) {
-        Order order = getOrderById(orderId);
+        Order order = getOrderByIdWithLock(orderId);
 
         if (order.getStatus() != OrderStatus.CONFIRMED && order.getStatus() != OrderStatus.PROCESSING) {
             throw new InvalidOrderException("Only CONFIRMED or PROCESSING orders can be picked");
@@ -185,7 +200,7 @@ public class OrderService {
 
     @Transactional
     public Order packOrder(Integer orderId) {
-        Order order = getOrderById(orderId);
+        Order order = getOrderByIdWithLock(orderId);
 
         if (order.getStatus() != OrderStatus.PICKED && order.getStatus() != OrderStatus.CONFIRMED) {
             throw new InvalidOrderException("Only PICKED orders can be packed");
@@ -197,10 +212,14 @@ public class OrderService {
 
     @Transactional
     public Order shipOrder(Integer orderId) {
-        Order order = getOrderById(orderId);
+        Order order = getOrderByIdWithLock(orderId);
 
         if (order.getStatus() == OrderStatus.FULFILLED || order.getStatus() == OrderStatus.SHIPPED) {
             throw new InvalidOrderException("Order is already fulfilled/shipped");
+        }
+
+        if (order.getStatus() == OrderStatus.DRAFT || order.getStatus() == OrderStatus.CANCELLED) {
+            throw new InvalidOrderException("Order cannot be shipped from status " + order.getStatus());
         }
 
         if (order.getStatus() != OrderStatus.PACKED && order.getStatus() != OrderStatus.PICKED && order.getStatus() != OrderStatus.CONFIRMED) {
@@ -212,27 +231,44 @@ public class OrderService {
         // Deduct inventory physical quantity and reserved quantity atomically, log stock movement
         if (inventoryRepository != null) {
             for (OrderItem item : items) {
-                if (item.getWarehouse() != null) {
-                    Inventory inv = inventoryRepository.findByProductProductIdAndWarehouseWarehouseId(
-                            item.getProduct().getProductId(), item.getWarehouse().getWarehouseId()).orElse(null);
+                if (item.getWarehouse() == null) {
+                    throw new InvalidOrderException("Warehouse must be assigned for product to fulfill shipment");
+                }
 
-                    if (inv != null) {
-                        int allocated = item.getAllocatedQuantity() > 0 ? item.getAllocatedQuantity() : item.getQuantity();
-                        int newQty = Math.max(0, inv.getQuantity() - allocated);
-                        int newReserved = Math.max(0, inv.getReservedQuantity() - allocated);
+                Inventory inv = inventoryRepository.findByProductProductIdAndWarehouseWarehouseIdWithLock(
+                        item.getProduct().getProductId(), item.getWarehouse().getWarehouseId())
+                        .orElseThrow(() -> new InvalidOrderException("No inventory record found for product "
+                                + (item.getProduct() != null ? item.getProduct().getSku() : "unknown")
+                                + " in warehouse " + item.getWarehouse().getWarehouseCode()));
 
-                        inv.setQuantity(newQty);
-                        inv.setReservedQuantity(newReserved);
-                        inventoryRepository.save(inv);
+                int allocated = item.getAllocatedQuantity() != null && item.getAllocatedQuantity() > 0
+                        ? item.getAllocatedQuantity()
+                        : item.getQuantity();
 
-                        if (stockMovementRepository != null) {
-                            stockMovementRepository.save(new StockMovement(
-                                    item.getProduct(), item.getWarehouse(),
-                                    MovementType.OUTBOUND_SALE, allocated,
-                                    order.getOrderNumber(), "Order Shipment Fulfillment", "FULFILLMENT_SYSTEM"
-                            ));
-                        }
-                    }
+                // Explicit invariant checks replacing silent clamping
+                if (inv.getQuantity() < allocated) {
+                    throw new InvalidOrderException("Physical inventory underflow: warehouse only has "
+                            + inv.getQuantity() + " units for SKU " + item.getProduct().getSku()
+                            + ", cannot ship " + allocated);
+                }
+
+                int currentReserved = inv.getReservedQuantity() != null ? inv.getReservedQuantity() : 0;
+                if (currentReserved < allocated) {
+                    throw new InvalidOrderException("Reserved inventory underflow: warehouse only has "
+                            + currentReserved + " reserved units for SKU " + item.getProduct().getSku()
+                            + ", cannot ship " + allocated);
+                }
+
+                inv.setQuantity(inv.getQuantity() - allocated);
+                inv.setReservedQuantity(currentReserved - allocated);
+                inventoryRepository.save(inv);
+
+                if (stockMovementRepository != null) {
+                    stockMovementRepository.save(new StockMovement(
+                            item.getProduct(), item.getWarehouse(),
+                            MovementType.OUTBOUND_SALE, allocated,
+                            order.getOrderNumber(), "Order Shipment Fulfillment", "FULFILLMENT_SYSTEM"
+                    ));
                 }
 
                 item.setStatus(OrderItemStatus.FULFILLED);
@@ -246,7 +282,7 @@ public class OrderService {
 
     @Transactional
     public Order cancelOrder(Integer orderId) {
-        Order order = getOrderById(orderId);
+        Order order = getOrderByIdWithLock(orderId);
 
         if (order.getStatus() == OrderStatus.FULFILLED || order.getStatus() == OrderStatus.SHIPPED) {
             throw new InvalidOrderException("A fulfilled order cannot be cancelled");
@@ -256,21 +292,29 @@ public class OrderService {
             throw new InvalidOrderException("Order is already cancelled");
         }
 
-        // Release any reserved inventory locks
+        // Release reserved inventory exactly once
         List<OrderItem> items = orderItemRepository.findByOrderOrderId(orderId);
         if (inventoryRepository != null) {
             for (OrderItem item : items) {
-                if (item.getAllocatedQuantity() > 0 && item.getWarehouse() != null) {
-                    Inventory inv = inventoryRepository.findByProductProductIdAndWarehouseWarehouseId(
-                            item.getProduct().getProductId(), item.getWarehouse().getWarehouseId()).orElse(null);
+                if (item.getAllocatedQuantity() != null && item.getAllocatedQuantity() > 0 && item.getWarehouse() != null) {
+                    Inventory inv = inventoryRepository.findByProductProductIdAndWarehouseWarehouseIdWithLock(
+                            item.getProduct().getProductId(), item.getWarehouse().getWarehouseId())
+                            .orElseThrow(() -> new InvalidOrderException("No inventory record found to release reservation for SKU "
+                                    + (item.getProduct() != null ? item.getProduct().getSku() : "unknown")));
 
-                    if (inv != null) {
-                        inv.setReservedQuantity(Math.max(0, inv.getReservedQuantity() - item.getAllocatedQuantity()));
-                        inventoryRepository.save(inv);
+                    int allocated = item.getAllocatedQuantity();
+                    int currentReserved = inv.getReservedQuantity() != null ? inv.getReservedQuantity() : 0;
+
+                    if (currentReserved < allocated) {
+                        throw new InvalidOrderException("Cannot cancel order: reserved quantity on inventory ("
+                                + currentReserved + ") is less than allocated quantity (" + allocated + ")");
                     }
+
+                    inv.setReservedQuantity(currentReserved - allocated);
+                    inventoryRepository.save(inv);
+                    item.setAllocatedQuantity(0);
                 }
 
-                item.setAllocatedQuantity(0);
                 item.setStatus(OrderItemStatus.CANCELLED);
                 orderItemRepository.save(item);
             }
@@ -278,6 +322,17 @@ public class OrderService {
 
         order.setStatus(OrderStatus.CANCELLED);
         return orderRepository.save(order);
+    }
+
+    private Order getOrderByIdWithLock(Integer orderId) {
+        return orderRepository.findByIdWithLock(orderId)
+                .orElseThrow(() ->
+                        new OrderNotFoundException(
+                                "Order with id "
+                                        + orderId
+                                        + " not found"
+                        )
+                );
     }
 
     @Transactional(readOnly = true)

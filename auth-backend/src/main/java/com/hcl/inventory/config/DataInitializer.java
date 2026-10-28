@@ -123,7 +123,7 @@ public class DataInitializer implements CommandLineRunner {
                 whMum.setState("Maharashtra");
                 whMum.setPincode("421302");
                 whMum.setManagerName("Vikram Deshmukh");
-                whMum.setContactNumber("022-28491001");
+                whMum.setContactNumber("02228491001");
                 whMum.setEmail("wh.mumbai@xyzretail.com");
                 whMum.setCapacity(250000);
                 warehouseRepository.save(whMum);
@@ -137,7 +137,7 @@ public class DataInitializer implements CommandLineRunner {
                 whDel.setState("Haryana");
                 whDel.setPincode("122413");
                 whDel.setManagerName("Anil Kashyap");
-                whDel.setContactNumber("0124-4921002");
+                whDel.setContactNumber("01244921002");
                 whDel.setEmail("wh.delhi@xyzretail.com");
                 whDel.setCapacity(300000);
                 warehouseRepository.save(whDel);

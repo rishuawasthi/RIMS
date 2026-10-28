@@ -1,83 +1,74 @@
-# RIMS Granular Change Log & Audit Trail
+# RIMS Granular Change Log & Remediation Audit Trail
 **Project Code:** `PRG_RIMS_001`  
 **Client:** XYZ Retail Corporation  
 **Audit Period:** October 28, 2026  
-**Scope:** Remediation of UST R1 – UST R7 Compliance Gaps  
+**Scope:** Targeted Remediation and Verification Pass (Tasks 1 through 7)
 
 ---
 
 ## 1. Summary of Changes
 
-A total of 32 files were modified or created across the backend (`auth-backend`), frontend (`angular-auth`), infrastructure configurations, and documentation. All modifications strictly respect the architectural safeguard preserving **Port 8080**, ensuring transactional integrity across inventory transfers and order allocations, enforcing granular RBAC, and resolving JSON serialization exceptions.
+A total of 24 files were modified or created across the backend (`auth-backend`), frontend CI/CD configurations, database scripts, and compliance documentation. All modifications strictly respect the architectural safeguard preserving **Port 8080**, ensuring transactional integrity across inventory transfers and order allocations, enforcing concurrency controls via pessimistic row locks, eliminating test suppression, and protecting database data during upgrades.
 
 ---
 
 ## 2. Granular File Modification Log
 
-### 2.1 Infrastructure & Environment Configurations
+### 2.1 CI/CD & Build Pipeline (`Task 1`)
 | File Path | Action | Description of Modifications |
 |:---|:---:|:---|
-| `auth-backend/Dockerfile` | Modified | Updated exposed port from 8083 to `8080` to preserve the unified API port architecture. |
-| `docker-compose.yml` | Modified | Corrected backend port mapping to `"8080:8080"` and health check probe to `http://localhost:8080/actuator/health`. |
-| `README.md` | Modified | Standardized all documentation instructions, Docker commands, and curl examples to port `8080`. |
-| `angular-auth/angular.json` | Modified | Added `"fonts": false` under build optimization to prevent network timeout failures when building offline in sandboxed environments. |
-| `angular-auth/proxy.conf.json` | Verified | Maintained proxy target as `http://127.0.0.1:8080` rewriting `/api` to root backend context. |
-| `auth-backend/src/main/resources/application.properties` | Verified | Maintained `server.port=8080` as the single authoritative source of truth. |
+| `.github/workflows/ci-cd.yml` | Modified | Removed `|| true` failure suppression from backend and frontend test steps. Configured backend job to run `./mvnw -B test` followed by `./mvnw -B package -DskipTests` (without clean), preserving Surefire artifact uploads. Configured frontend test step with `npm test -- --no-watch`, removing obsolete Karma arguments. |
+| `auth-backend/pom.xml` | Modified | Added `com.h2database:h2` dependency in `test` scope. |
+| `auth-backend/src/test/resources/application.properties` | Created | Added isolated test profile using in-memory H2 in PostgreSQL compatibility mode, enabling 100% reliable local and CI test execution without requiring external database services. |
 
 ---
 
-### 2.2 Backend Domain & Service Layer (`auth-backend`)
+### 2.2 Domain, Persistence & Service Concurrency (`Tasks 2 & 3`)
 | File Path | Action | Description of Modifications |
 |:---|:---:|:---|
-| `.../config/DataInitializer.java` | Modified | Added SQL safety check to drop legacy enum constraints during DB initialization, preventing seed failure with new roles. |
-| `.../config/SecurityConfig.java` | Modified | Added `@EnableMethodSecurity`, configured `.requestMatchers("/users/**").hasRole("ADMIN")`, and retained public access for `/auth/login` and Swagger UI. |
-| `.../filter/JwtAuthFilter.java` | Modified | Added role authority extraction adding both `ROLE_<ROLE>` and `<ROLE>` to Spring Security's `SecurityContextHolder`. |
-| `.../enums/OrderStatus.java` | Modified | Extended enum values with `PICKED`, `PACKED`, and `SHIPPED` to support the complete order fulfillment pipeline. |
-| `.../entity/Inventory.java` | Modified | Added `@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})` to eliminate HTTP 500 Jackson cyclic serialization errors. |
-| `.../entity/Product.java` | Modified | Added `@JsonIgnoreProperties` annotations to eliminate lazy-loading proxy serialization exceptions. |
-| `.../entity/Warehouse.java` | Modified | Added `@JsonIgnoreProperties` annotations to eliminate lazy-loading proxy serialization exceptions. |
-| `.../dto/StockTransferRequest.java` | Created | Added Java record/DTO encapsulating `productId`, `sourceWarehouseId`, `targetWarehouseId`, `quantity`, and `reason`. |
-| `.../service/InventoryService.java` | Modified | Implemented `@Transactional transferStock(StockTransferRequest)` with source stock decrement, target stock increment, balance validation, and dual `StockMovement` ledger generation. |
-| `.../service/OrderService.java` | Modified | Implemented stock reservations in `confirmOrder()`, setting `Inventory.reservedQuantity` and `OrderItem.status = ALLOCATED`. Added `pickOrder()`, `packOrder()`, `shipOrder()` (decrements physical and reserved stock, logs `OUTBOUND_SALE`), and `cancelOrder()` (releases reserved stock). |
-| `.../service/ProductService.java` | Modified | Implemented `bulkImportFromCsv(MultipartFile)` with Apache Commons CSV validation and batch saves; implemented `exportToCsv()` streaming product catalog. |
-| `.../service/PurchaseOrderService.java` | Modified | Injected `StockMovementRepository` and added audit ledger entry (`INBOUND_PO`) when receiving purchase order goods. |
+| `.../repository/InventoryRepository.java` | Modified | Added `@Lock(LockModeType.PESSIMISTIC_WRITE)` methods `findByProductProductIdAndWarehouseWarehouseIdWithLock` and `findByIdWithLock`. |
+| `.../repository/OrderRepository.java` | Modified | Added `@Lock(LockModeType.PESSIMISTIC_WRITE)` method `findByIdWithLock`. |
+| `.../service/InventoryService.java` | Modified | Added strict parameter validation to `transferStock()` (rejection of null requests, missing IDs, zero or negative quantities, and identical source/destination warehouses). Added pessimistic write locking on source and target inventory records, verified unreserved stock, and ensured movements are committed only on success. |
+| `.../service/OrderService.java` | Modified | Added pessimistic locking on Order and Inventory rows during confirmation, shipping, and cancellation. Enforced deterministic item ordering to avoid deadlocks. Prevented duplicate order confirmation. Replaced silent quantity clamping (`Math.max(0, ...)`) with explicit invariant underflow checks. Ensured cancellation decrements reservations exactly once. |
+| `.../config/DataInitializer.java` | Modified | Standardized warehouse contact numbers to pure digit strings, resolving Jakarta validation violations (`^[0-9]{10,15}$`) during entity persistence. |
 
 ---
 
-### 2.3 Backend Controller Layer (`auth-backend`)
+### 2.3 Automated Test Suites (`Tasks 1, 2 & 3`)
 | File Path | Action | Description of Modifications |
 |:---|:---:|:---|
-| `.../controller/AppUserController.java` | Modified | Added `@PreAuthorize("hasRole('ADMIN')")` at class level to enforce administrative authorization. |
-| `.../controller/InventoryController.java` | Modified | Added `POST /inventory/transfer` endpoint mapping to `InventoryService.transferStock`. |
-| `.../controller/OrderController.java` | Modified | Added status transition endpoints: `PUT /orders/{id}/pick`, `PUT /orders/{id}/pack`, `PUT /orders/{id}/ship`, and `PUT /orders/{id}/cancel`. |
-| `.../controller/ProductController.java` | Modified | Added `POST /products/bulk-import` (multipart) and `GET /products/export/csv` (text/csv). |
+| `.../service/InventoryServiceTest.java` | Modified | Expanded test suite to 16 tests by adding 9 regression test cases covering stock transfer validation, unreserved stock verification, negative quantity rejection, identical warehouse rejection, and pessimistic lock lookup. |
+| `.../service/OrderServiceTest.java` | Created | Created comprehensive unit test suite with 19 tests covering order confirmation reservations, double-confirmation prevention, pick/pack/ship transitions, explicit underflow invariant checks, cancellation release, and concurrent order allocation simulation. |
 
 ---
 
-### 2.4 Frontend Services, Guards & Routing (`angular-auth`)
+### 2.4 Configuration & Secret Hardening (`Task 4`)
 | File Path | Action | Description of Modifications |
 |:---|:---:|:---|
-| `src/app/core/guards/auth.guard.ts` | Modified | Updated `authGuard` to read `route.data['roles']` and verify against `currentUser()?.role`; redirects unauthorized users to `/dashboard`. |
-| `src/app/app.routes.ts` | Modified | Configured `data: { roles: ['ADMIN'] }` on `/users` route. |
-| `src/app/core/models/product.model.ts` | Modified | Replaced empty interface with fully typed `Product` TypeScript model. |
-| `src/app/core/services/product.ts` | Modified | Implemented typed service methods: `getAll`, `getById`, `create`, `update`, `delete`, `searchByName`, `searchByCategory`, `searchByBrand`, `bulkImport`, and `exportCsv`. |
-| `src/app/core/services/inventory-api.ts` | Modified | Added generic typed `get<T>(endpoint: string)` method to support custom analytics payloads. |
+| `docker-compose.yml` | Modified | Replaced hardcoded database passwords with environment variables (`${POSTGRES_PASSWORD:-postgres}`, `${SPRING_DATASOURCE_PASSWORD:-postgres}`, `${RIMS_JWT_SECRET:...}`). Preserved port 8080 mapping. |
+| `auth-backend/src/main/resources/application.properties` | Modified | Externalized sensitive database credentials and JWT signing secret to environment variables. Preserved `server.port=${SERVER_PORT:8080}`. |
+| `.../config/JwtUtil.java` | Modified | Added defense-in-depth secret key validation enforcing a minimum length of 32 characters (256 bits). |
+| `.env.example` | Modified | Removed real credentials, standardized backend port to 8080 (corrected 8083 typo), updated API URL to 8080, and added clear placeholders. |
+| `.gitignore` | Modified | Added `.env.*`, `*.pem`, `*.key` to prevent accidental credential leakage. |
 
 ---
 
-### 2.5 Frontend Presentation & UI Components (`angular-auth`)
+### 2.5 Database Schema & Integrity (`Task 5`)
 | File Path | Action | Description of Modifications |
 |:---|:---:|:---|
-| `src/app/features/dashboard/dashboard.ts` | Modified | Injected analytics API endpoints (`analytics/kpis` and `analytics/categories`) via RxJS `forkJoin`, added INR currency and number formatters. |
-| `src/app/features/dashboard/dashboard.html` | Modified | Added 4 executive KPI cards (Inventory Valuation, Stockout Rate, Accuracy Rate, Units On Hand) and Category Distribution breakdown table. |
-| `src/app/features/dashboard/dashboard.css` | Modified | Added CSS rules for executive KPI badge symbols and responsiveness. |
-| `src/app/features/resource-config.ts` | Modified | Added Confirm, Pick, Pack, Ship, and Cancel lifecycle action buttons to order management view. |
-| `src/app/layout/sidebar/sidebar.ts` | Modified | Injected `AuthService` and exposed `isAdmin = computed(() => this.authService.currentUser()?.role === 'ADMIN')`. |
-| `src/app/layout/sidebar/sidebar.html` | Modified | Wrapped Administration / Users navigation section in `@if (isAdmin())` conditional block. |
-| `src/app/shared/components/resource-workspace/resource-workspace.ts` | Modified | Added low-stock checkbox filter and status badge evaluator. |
-| `src/app/shared/components/resource-workspace/resource-workspace.html` | Modified | Added low-stock visual warning badge (`[Low Stock]`) and filter toggle on `/inventory`. |
+| `database/schema.sql` | Modified | Removed destructive `DROP TABLE IF EXISTS ... CASCADE`. Converted all table and index declarations to non-destructive `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS`. Aligned column lengths and nullability with JPA entities (`order_item.warehouse_id` nullable, `supplier_name` 150 chars). |
+| `database/reset.sql` | Created | Created dedicated, isolated destructive teardown script for explicit reset environments. |
+| `database/seed.sql` | Modified | Standardized warehouse contact numbers to pure digit strings matching entity validation rules. |
+| `database/MIGRATION_STRATEGY.md` | Created | Authored database migration strategy guide defining non-destructive DDL rules, JPA entity synchronization, and safe upgrade workflows. |
 
 ---
 
-## 3. Byte-Level Character Sanitation
-- Removed UTF-8 Byte Order Marks (`\uFEFF`) that had been introduced into Java controllers during earlier Windows text modifications, restoring clean Java compiler compatibility across all 87 source files.
+### 2.6 Documentation & Compliance Reporting (`Task 6`)
+| File Path | Action | Description of Modifications |
+|:---|:---:|:---|
+| `README.md` | Modified | Updated repository URL to `https://github.com/rishuawasthi/RIMS`, removed hardcoded passwords, updated test commands and test counts (58 backend tests, 19 frontend tests), and clarified simulated vs live integrations. |
+| `TEST_REPORT.md` | Modified | Rewrote test execution report to reflect actual test runner output, real test names, and passing status across all 58 backend tests and 19 frontend Vitest tests. |
+| `REQUIREMENTS_TRACEABILITY.md` | Modified | Updated RTM to map requirements to actual test methods, distinguishing implemented/tested vs simulated components. |
+| `DATABASE_DESIGN.md` | Modified | Updated data dictionary, documented non-destructive schema, and referenced migration strategy. |
+| `PROJECT_AUDIT.md` | Modified | Updated audit findings with details of the targeted remediation pass. |
+| `FINAL_COMPLIANCE_REPORT.md` | Modified | Aligned compliance scorecards with verified evidence, removing unverified 100% production claims. |

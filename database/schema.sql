@@ -2,21 +2,12 @@
 -- RETAIL INVENTORY MANAGEMENT SYSTEM (RIMS) - PRG_RIMS_001
 -- Client: XYZ Retail Corporation
 -- Database Schema Script (PostgreSQL 15+)
+-- Non-destructive initialization: preserves existing data and tables.
+-- For destructive reset, see database/reset.sql.
 -- =============================================================================
 
--- Clean up existing tables in reverse dependency order
-DROP TABLE IF EXISTS stock_movement CASCADE;
-DROP TABLE IF EXISTS order_item CASCADE;
-DROP TABLE IF EXISTS orders CASCADE;
-DROP TABLE IF EXISTS purchase_order CASCADE;
-DROP TABLE IF EXISTS inventory CASCADE;
-DROP TABLE IF EXISTS supplier CASCADE;
-DROP TABLE IF EXISTS warehouse CASCADE;
-DROP TABLE IF EXISTS product CASCADE;
-DROP TABLE IF EXISTS app_user CASCADE;
-
 -- 1. App Users & Role-Based Access Control
-CREATE TABLE app_user (
+CREATE TABLE IF NOT EXISTS app_user (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(100) NOT NULL,
@@ -32,11 +23,11 @@ CREATE TABLE app_user (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_user_username ON app_user(LOWER(username));
-CREATE INDEX idx_user_email ON app_user(LOWER(email));
+CREATE INDEX IF NOT EXISTS idx_user_username ON app_user(LOWER(username));
+CREATE INDEX IF NOT EXISTS idx_user_email ON app_user(LOWER(email));
 
 -- 2. Product Master Catalog (Apparel, Home Goods, Electronics)
-CREATE TABLE product (
+CREATE TABLE IF NOT EXISTS product (
     product_id SERIAL PRIMARY KEY,
     product_name VARCHAR(100) NOT NULL,
     product_price NUMERIC(12, 2) NOT NULL CHECK (product_price > 0),
@@ -51,11 +42,11 @@ CREATE TABLE product (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_product_sku ON product(LOWER(sku));
-CREATE INDEX idx_product_category ON product(LOWER(product_category));
+CREATE INDEX IF NOT EXISTS idx_product_sku ON product(LOWER(sku));
+CREATE INDEX IF NOT EXISTS idx_product_category ON product(LOWER(product_category));
 
 -- 3. Warehouses & Retail Stores Network (500+ Store Topology)
-CREATE TABLE warehouse (
+CREATE TABLE IF NOT EXISTS warehouse (
     warehouse_id SERIAL PRIMARY KEY,
     warehouse_code VARCHAR(50) NOT NULL UNIQUE,
     warehouse_name VARCHAR(100) NOT NULL,
@@ -73,10 +64,10 @@ CREATE TABLE warehouse (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_warehouse_code ON warehouse(LOWER(warehouse_code));
+CREATE INDEX IF NOT EXISTS idx_warehouse_code ON warehouse(LOWER(warehouse_code));
 
 -- 4. Multi-Location Real-time Inventory Levels
-CREATE TABLE inventory (
+CREATE TABLE IF NOT EXISTS inventory (
     inventory_id SERIAL PRIMARY KEY,
     product_id INT NOT NULL REFERENCES product(product_id) ON DELETE RESTRICT,
     warehouse_id INT NOT NULL REFERENCES warehouse(warehouse_id) ON DELETE RESTRICT,
@@ -90,14 +81,14 @@ CREATE TABLE inventory (
     CONSTRAINT chk_reserved_lte_qty CHECK (reserved_quantity <= quantity)
 );
 
-CREATE INDEX idx_inv_product ON inventory(product_id);
-CREATE INDEX idx_inv_warehouse ON inventory(warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_inv_product ON inventory(product_id);
+CREATE INDEX IF NOT EXISTS idx_inv_warehouse ON inventory(warehouse_id);
 
 -- 5. Supplier Management
-CREATE TABLE supplier (
+CREATE TABLE IF NOT EXISTS supplier (
     supplier_id SERIAL PRIMARY KEY,
     supplier_code VARCHAR(50) NOT NULL UNIQUE,
-    supplier_name VARCHAR(100) NOT NULL,
+    supplier_name VARCHAR(150) NOT NULL,
     contact_person VARCHAR(100),
     email VARCHAR(100) NOT NULL UNIQUE,
     phone VARCHAR(20) NOT NULL,
@@ -112,10 +103,10 @@ CREATE TABLE supplier (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_supplier_code ON supplier(LOWER(supplier_code));
+CREATE INDEX IF NOT EXISTS idx_supplier_code ON supplier(LOWER(supplier_code));
 
 -- 6. Purchase Orders (Procurement & Restocking)
-CREATE TABLE purchase_order (
+CREATE TABLE IF NOT EXISTS purchase_order (
     po_id SERIAL PRIMARY KEY,
     po_number VARCHAR(50) NOT NULL UNIQUE,
     supplier_id INT NOT NULL REFERENCES supplier(supplier_id) ON DELETE RESTRICT,
@@ -132,14 +123,14 @@ CREATE TABLE purchase_order (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_po_number ON purchase_order(LOWER(po_number));
+CREATE INDEX IF NOT EXISTS idx_po_number ON purchase_order(LOWER(po_number));
 
 -- 7. Sales Orders (Customer Order Management)
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
     order_id SERIAL PRIMARY KEY,
     order_number VARCHAR(50) NOT NULL UNIQUE,
-    customer_name VARCHAR(100) NOT NULL,
-    customer_email VARCHAR(100) NOT NULL,
+    customer_name VARCHAR(150) NOT NULL,
+    customer_email VARCHAR(150),
     customer_phone VARCHAR(20),
     shipping_address VARCHAR(255) NOT NULL,
     city VARCHAR(50) NOT NULL,
@@ -152,14 +143,14 @@ CREATE TABLE orders (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_order_number ON orders(LOWER(order_number));
+CREATE INDEX IF NOT EXISTS idx_order_number ON orders(LOWER(order_number));
 
 -- 8. Customer Order Line Items
-CREATE TABLE order_item (
+CREATE TABLE IF NOT EXISTS order_item (
     order_item_id SERIAL PRIMARY KEY,
     order_id INT NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
     product_id INT NOT NULL REFERENCES product(product_id) ON DELETE RESTRICT,
-    warehouse_id INT NOT NULL REFERENCES warehouse(warehouse_id) ON DELETE RESTRICT,
+    warehouse_id INT REFERENCES warehouse(warehouse_id) ON DELETE RESTRICT,
     quantity INT NOT NULL CHECK (quantity > 0),
     unit_price NUMERIC(12, 2) NOT NULL CHECK (unit_price > 0),
     allocated_quantity INT NOT NULL DEFAULT 0 CHECK (allocated_quantity >= 0),
@@ -169,10 +160,10 @@ CREATE TABLE order_item (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_order_item_order ON order_item(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_item_order ON order_item(order_id);
 
 -- 9. Real-time Stock Movement Ledger & Audit Logs
-CREATE TABLE stock_movement (
+CREATE TABLE IF NOT EXISTS stock_movement (
     movement_id BIGSERIAL PRIMARY KEY,
     product_id INT NOT NULL REFERENCES product(product_id) ON DELETE RESTRICT,
     warehouse_id INT NOT NULL REFERENCES warehouse(warehouse_id) ON DELETE RESTRICT,
@@ -184,6 +175,6 @@ CREATE TABLE stock_movement (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_movement_product ON stock_movement(product_id);
-CREATE INDEX idx_movement_warehouse ON stock_movement(warehouse_id);
-CREATE INDEX idx_movement_created ON stock_movement(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_movement_product ON stock_movement(product_id);
+CREATE INDEX IF NOT EXISTS idx_movement_warehouse ON stock_movement(warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_movement_created ON stock_movement(created_at DESC);
