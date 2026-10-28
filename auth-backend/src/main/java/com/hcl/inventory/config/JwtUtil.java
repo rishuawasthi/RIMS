@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,10 +58,21 @@ public class JwtUtil {
     }
 
     /**
-     * Extract the role claim from a token.
+     * Extract the role claim from a token, inspecting "role", "roles", and "authorities".
      */
     public String extractRole(String token) {
-        return parseClaims(token).get("role", String.class);
+        Claims claims = parseClaims(token);
+        Object roleObj = claims.get("role");
+        if (roleObj == null) {
+            roleObj = claims.get("roles");
+        }
+        if (roleObj == null) {
+            roleObj = claims.get("authorities");
+        }
+        if (roleObj instanceof List<?> list && !list.isEmpty()) {
+            return String.valueOf(list.get(0));
+        }
+        return roleObj != null ? String.valueOf(roleObj) : null;
     }
 
     /**

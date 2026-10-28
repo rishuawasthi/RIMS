@@ -20,6 +20,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * <ul>
  *   <li>POST /auth/login — public (no token required)</li>
  *   <li>GET /swagger-ui/** and /v3/api-docs/** — public (dev convenience)</li>
+ *   <li>OPTIONS /** — public (CORS preflight)</li>
+ *   <li>/users/** — ADMIN only</li>
+ *   <li>/orders/**, /order-items/** — ADMIN, STORE_MANAGER, STORE_STAFF, WAREHOUSE_STAFF</li>
  *   <li>All other endpoints — require a valid JWT Bearer token</li>
  * </ul>
  *
@@ -52,6 +55,9 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+                        // Preflight CORS requests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         // Login endpoint — open to everyone (both /auth/login and /api/auth/login)
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/api/auth/login").permitAll()
 
@@ -63,7 +69,13 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // Administrative endpoints require ADMIN role
-                        .requestMatchers("/users/**").hasRole("ADMIN")
+                        .requestMatchers("/users", "/users/**", "/api/users", "/api/users/**").hasRole("ADMIN")
+
+                        // Customer Orders & Order Items
+                        .requestMatchers(
+                                "/orders", "/orders/**", "/api/orders", "/api/orders/**",
+                                "/order-items", "/order-items/**", "/api/order-items", "/api/order-items/**"
+                        ).hasAnyRole("ADMIN", "STORE_MANAGER", "STORE_STAFF", "WAREHOUSE_STAFF")
 
                         // Everything else requires authentication
                         .anyRequest().authenticated()

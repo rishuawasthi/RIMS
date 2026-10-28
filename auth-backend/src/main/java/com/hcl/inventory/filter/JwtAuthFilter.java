@@ -63,7 +63,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             List<SimpleGrantedAuthority> authorities = new ArrayList<>();
             if (role != null && !role.isBlank()) {
-                String cleanRole = role.startsWith("ROLE_") ? role.substring(5) : role;
+                String cleanRole = role.trim().replace("ROLE_", "");
                 authorities.add(new SimpleGrantedAuthority("ROLE_" + cleanRole));
                 authorities.add(new SimpleGrantedAuthority(cleanRole));
             }

@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/order-items")
+@PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER', 'STORE_STAFF', 'WAREHOUSE_STAFF')")
 public class OrderItemController {
 
     private final OrderItemService orderItemService;
@@ -32,6 +34,7 @@ public class OrderItemController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER', 'STORE_STAFF', 'WAREHOUSE_STAFF', 'AUDITOR')")
     public ResponseEntity<List<OrderItem>> getAllOrderItems() {
 
         return ResponseEntity.ok(
@@ -40,6 +43,7 @@ public class OrderItemController {
     }
 
     @GetMapping("/{orderItemId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER', 'STORE_STAFF', 'WAREHOUSE_STAFF', 'AUDITOR')")
     public ResponseEntity<OrderItem> getOrderItemById(
             @PathVariable Integer orderItemId
     ) {
@@ -52,6 +56,7 @@ public class OrderItemController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER', 'STORE_STAFF')")
     public ResponseEntity<OrderItem> addOrderItem(
             @Valid @RequestBody OrderItem orderItem
     ) {
@@ -66,6 +71,7 @@ public class OrderItemController {
     }
 
     @PutMapping("/{orderItemId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER', 'STORE_STAFF')")
     public ResponseEntity<OrderItem> updateOrderItem(
             @PathVariable Integer orderItemId,
             @Valid @RequestBody OrderItem orderItem
@@ -80,6 +86,7 @@ public class OrderItemController {
     }
 
     @PostMapping("/{orderItemId}/cancel")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER')")
     public ResponseEntity<OrderItem> cancelOrderItem(
             @PathVariable Integer orderItemId
     ) {
@@ -92,6 +99,7 @@ public class OrderItemController {
     }
 
     @DeleteMapping("/{orderItemId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteOrderItem(
             @PathVariable Integer orderItemId
     ) {
@@ -104,6 +112,7 @@ public class OrderItemController {
     }
 
     @GetMapping("/order/{orderId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER', 'STORE_STAFF', 'WAREHOUSE_STAFF', 'AUDITOR')")
     public ResponseEntity<List<OrderItem>> getItemsByOrder(
             @PathVariable Integer orderId
     ) {
@@ -116,6 +125,7 @@ public class OrderItemController {
     }
 
     @GetMapping("/product/{productId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER', 'STORE_STAFF', 'WAREHOUSE_STAFF', 'AUDITOR')")
     public ResponseEntity<List<OrderItem>> getItemsByProduct(
             @PathVariable Integer productId
     ) {
@@ -128,6 +138,7 @@ public class OrderItemController {
     }
 
     @GetMapping("/warehouse/{warehouseId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER', 'STORE_STAFF', 'WAREHOUSE_STAFF', 'AUDITOR')")
     public ResponseEntity<List<OrderItem>> getItemsByWarehouse(
             @PathVariable Integer warehouseId
     ) {
@@ -140,6 +151,7 @@ public class OrderItemController {
     }
 
     @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER', 'STORE_STAFF', 'WAREHOUSE_STAFF', 'AUDITOR')")
     public ResponseEntity<List<OrderItem>> getItemsByStatus(
             @PathVariable OrderItemStatus status
     ) {
