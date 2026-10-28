@@ -197,7 +197,10 @@ export const resourceConfigs: Record<string, ResourceConfig> = {
     ],
     actions: [
       { label: 'Confirm', path: 'confirm', statuses: ['DRAFT'] },
-      { label: 'Cancel', path: 'cancel', statuses: ['DRAFT', 'CONFIRMED', 'PROCESSING', 'PARTIALLY_FULFILLED', 'BACKORDERED'] },
+      { label: 'Pick', path: 'pick', statuses: ['CONFIRMED', 'PROCESSING'] },
+      { label: 'Pack', path: 'pack', statuses: ['PICKED', 'CONFIRMED'] },
+      { label: 'Ship', path: 'ship', statuses: ['PACKED', 'PICKED', 'CONFIRMED'] },
+      { label: 'Cancel', path: 'cancel', statuses: ['DRAFT', 'CONFIRMED', 'PROCESSING', 'PICKED', 'PACKED', 'PARTIALLY_FULFILLED', 'BACKORDERED'] },
     ],
   },
   'order-items': {

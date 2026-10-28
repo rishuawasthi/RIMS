@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../core/services/auth';
 
 @Component({
   selector: 'app-sidebar',
@@ -12,4 +13,6 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   styleUrl: './sidebar.css'
 })
 export class Sidebar {
+  private readonly authService = inject(AuthService);
+  readonly isAdmin = computed(() => this.authService.currentUser()?.role === 'ADMIN');
 }

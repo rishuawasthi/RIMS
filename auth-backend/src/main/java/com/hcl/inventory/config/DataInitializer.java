@@ -1,8 +1,10 @@
 package com.hcl.inventory.config;
 
 import com.hcl.inventory.entity.AppUser;
+import com.hcl.inventory.entity.Inventory;
 import com.hcl.inventory.entity.Product;
 import com.hcl.inventory.entity.Warehouse;
+import com.hcl.inventory.enums.InventoryStatus;
 import com.hcl.inventory.enums.ProductStatus;
 import com.hcl.inventory.enums.UserRole;
 import com.hcl.inventory.enums.UserStatus;
@@ -18,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -57,6 +60,7 @@ public class DataInitializer implements CommandLineRunner {
         dropLegacyRoleConstraint();
         seedUsers();
         seedCatalogAndWarehouses();
+        seedInventory();
     }
 
     private void dropLegacyRoleConstraint() {
@@ -175,6 +179,32 @@ public class DataInitializer implements CommandLineRunner {
             }
         } catch (Exception e) {
             log.warn("Catalog/warehouse seeding skipped: {}", e.getMessage());
+        }
+    }
+
+    private void seedInventory() {
+        try {
+            if (inventoryRepository.count() == 0) {
+                List<Product> products = productRepository.findAll();
+                List<Warehouse> warehouses = warehouseRepository.findAll();
+                if (!products.isEmpty() && !warehouses.isEmpty()) {
+                    for (Warehouse wh : warehouses) {
+                        for (Product pr : products) {
+                            Inventory inv = new Inventory();
+                            inv.setWarehouse(wh);
+                            inv.setProduct(pr);
+                            inv.setQuantity(120);
+                            inv.setReorderLevel(25);
+                            inv.setReservedQuantity(5);
+                            inv.setStatus(InventoryStatus.ACTIVE);
+                            inventoryRepository.save(inv);
+                        }
+                    }
+                    log.info("✅ Seeded initial inventory stock records");
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Inventory seeding skipped: {}", e.getMessage());
         }
     }
 }

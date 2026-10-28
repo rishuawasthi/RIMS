@@ -1,5 +1,6 @@
 package com.hcl.inventory.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.hcl.inventory.enums.WarehouseStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "warehouse")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Warehouse {
 
     @Id

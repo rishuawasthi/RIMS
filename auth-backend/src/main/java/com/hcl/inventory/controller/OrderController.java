@@ -3,6 +3,8 @@ package com.hcl.inventory.controller;
 import com.hcl.inventory.entity.Order;
 import com.hcl.inventory.enums.OrderStatus;
 import com.hcl.inventory.service.OrderService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,130 +23,98 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/orders")
+@Tag(name = "Customer Orders", description = "Order intake, stock allocation, pick, pack, ship, and fulfillment lifecycle")
 public class OrderController {
 
     private final OrderService orderService;
 
     @Autowired
-    public OrderController(
-            OrderService orderService
-    ) {
+    public OrderController(OrderService orderService) {
         this.orderService = orderService;
     }
 
     @GetMapping
+    @Operation(summary = "List all customer orders")
     public ResponseEntity<List<Order>> getAllOrders() {
-
-        return ResponseEntity.ok(
-                orderService.getAllOrders()
-        );
+        return ResponseEntity.ok(orderService.getAllOrders());
     }
 
     @GetMapping("/{orderId}")
-    public ResponseEntity<Order> getOrderById(
-            @PathVariable Integer orderId
-    ) {
-
-        return ResponseEntity.ok(
-                orderService.getOrderById(orderId)
-        );
+    @Operation(summary = "Get order by ID")
+    public ResponseEntity<Order> getOrderById(@PathVariable Integer orderId) {
+        return ResponseEntity.ok(orderService.getOrderById(orderId));
     }
 
     @PostMapping
-    public ResponseEntity<Order> addOrder(
-            @Valid @RequestBody Order order
-    ) {
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(
-                        orderService.addOrder(order)
-                );
+    @Operation(summary = "Create draft customer order")
+    public ResponseEntity<Order> addOrder(@Valid @RequestBody Order order) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.addOrder(order));
     }
 
     @PutMapping("/{orderId}")
-    public ResponseEntity<Order> updateOrder(
-            @PathVariable Integer orderId,
-            @Valid @RequestBody Order order
-    ) {
-
-        return ResponseEntity.ok(
-                orderService.updateOrder(
-                        orderId,
-                        order
-                )
-        );
+    @Operation(summary = "Update customer order details (DRAFT only)")
+    public ResponseEntity<Order> updateOrder(@PathVariable Integer orderId, @Valid @RequestBody Order order) {
+        return ResponseEntity.ok(orderService.updateOrder(orderId, order));
     }
 
     @PostMapping("/{orderId}/confirm")
-    public ResponseEntity<Order> confirmOrder(
-            @PathVariable Integer orderId
-    ) {
+    @Operation(summary = "Confirm order and allocate/reserve stock")
+    public ResponseEntity<Order> confirmOrder(@PathVariable Integer orderId) {
+        return ResponseEntity.ok(orderService.confirmOrder(orderId));
+    }
 
-        return ResponseEntity.ok(
-                orderService.confirmOrder(orderId)
-        );
+    @PostMapping("/{orderId}/pick")
+    @Operation(summary = "Pick order items in warehouse")
+    public ResponseEntity<Order> pickOrder(@PathVariable Integer orderId) {
+        return ResponseEntity.ok(orderService.pickOrder(orderId));
+    }
+
+    @PostMapping("/{orderId}/pack")
+    @Operation(summary = "Pack order items for dispatch")
+    public ResponseEntity<Order> packOrder(@PathVariable Integer orderId) {
+        return ResponseEntity.ok(orderService.packOrder(orderId));
+    }
+
+    @PostMapping("/{orderId}/ship")
+    @Operation(summary = "Ship order, deduct physical & reserved stock, write outbound ledger entry")
+    public ResponseEntity<Order> shipOrder(@PathVariable Integer orderId) {
+        return ResponseEntity.ok(orderService.shipOrder(orderId));
     }
 
     @PostMapping("/{orderId}/cancel")
-    public ResponseEntity<Order> cancelOrder(
-            @PathVariable Integer orderId
-    ) {
-
-        return ResponseEntity.ok(
-                orderService.cancelOrder(orderId)
-        );
+    @Operation(summary = "Cancel order and release reserved stock")
+    public ResponseEntity<Order> cancelOrder(@PathVariable Integer orderId) {
+        return ResponseEntity.ok(orderService.cancelOrder(orderId));
     }
 
     @DeleteMapping("/{orderId}")
-    public ResponseEntity<Void> deleteOrder(
-            @PathVariable Integer orderId
-    ) {
-
+    @Operation(summary = "Delete order (DRAFT or CANCELLED only)")
+    public ResponseEntity<Void> deleteOrder(@PathVariable Integer orderId) {
         orderService.deleteOrder(orderId);
-
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/search/order-number")
-    public ResponseEntity<List<Order>> searchByOrderNumber(
-            @RequestParam String orderNumber
-    ) {
-
-        return ResponseEntity.ok(
-                orderService.searchByOrderNumber(
-                        orderNumber
-                )
-        );
+    @Operation(summary = "Search orders by order number")
+    public ResponseEntity<List<Order>> searchByOrderNumber(@RequestParam String orderNumber) {
+        return ResponseEntity.ok(orderService.searchByOrderNumber(orderNumber));
     }
 
     @GetMapping("/search/customer")
-    public ResponseEntity<List<Order>> searchByCustomerName(
-            @RequestParam String name
-    ) {
-
-        return ResponseEntity.ok(
-                orderService.searchByCustomerName(name)
-        );
+    @Operation(summary = "Search orders by customer name")
+    public ResponseEntity<List<Order>> searchByCustomerName(@RequestParam String name) {
+        return ResponseEntity.ok(orderService.searchByCustomerName(name));
     }
 
     @GetMapping("/customer/email")
-    public ResponseEntity<List<Order>> getByCustomerEmail(
-            @RequestParam String email
-    ) {
-
-        return ResponseEntity.ok(
-                orderService.getByCustomerEmail(email)
-        );
+    @Operation(summary = "Get orders by customer email")
+    public ResponseEntity<List<Order>> getByCustomerEmail(@RequestParam String email) {
+        return ResponseEntity.ok(orderService.getByCustomerEmail(email));
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<Order>> getByStatus(
-            @PathVariable OrderStatus status
-    ) {
-
-        return ResponseEntity.ok(
-                orderService.getByStatus(status)
-        );
+    @Operation(summary = "Filter orders by status")
+    public ResponseEntity<List<Order>> getByStatus(@PathVariable OrderStatus status) {
+        return ResponseEntity.ok(orderService.getByStatus(status));
     }
 }

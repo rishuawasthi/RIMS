@@ -7,6 +7,10 @@ export class InventoryApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api';
 
+  get<T>(resource: string): Observable<T> {
+    return this.http.get<T>(`${this.baseUrl}/${resource}`);
+  }
+
   list<T>(resource: string): Observable<T[]> {
     return this.http.get<T[]>(`${this.baseUrl}/${resource}`);
   }

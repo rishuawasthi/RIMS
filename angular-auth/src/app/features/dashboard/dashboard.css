@@ -20,6 +20,10 @@
 .metric-low .metric-symbol { background: #fff1dd; color: #a46c1b; }
 .metric-orders .metric-symbol { background: #e8f1f7; color: #3a7290; }
 .metric-purchase .metric-symbol { background: #f9eae5; color: #a95543; }
+.metric-valuation .metric-symbol { background: #eaf1df; color: #327164; }
+.metric-stockout .metric-symbol { background: #fdf2e9; color: #c05621; }
+.metric-accuracy .metric-symbol { background: #edf4e8; color: #2f855a; }
+.metric-units .metric-symbol { background: #ebf8fa; color: #2b6cb0; }
 .dashboard-columns { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr); gap: 14px; margin-top: 15px; }
 .overview-panel, .quick-panel { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: 7px; background: white; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

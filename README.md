@@ -152,8 +152,8 @@ docker compose up --build
 
 Access the applications:
 - **RIMS Web Application:** `http://localhost:80`
-- **Spring Boot REST API:** `http://localhost:8083`
-- **Swagger / OpenAPI Documentation:** `http://localhost:8083/swagger-ui.html`
+- **Spring Boot REST API:** `http://localhost:8080`
+- **Swagger / OpenAPI Documentation:** `http://localhost:8080/swagger-ui.html`
 - **PostgreSQL Database:** `localhost:5432` (`hcl` / `postgres` / `1909`)
 
 ---
@@ -174,20 +174,10 @@ cd auth-backend
 # Verify dependencies and run tests
 ./mvnw clean test
 
-# Run Spring Boot application (launches on port 8083)
+# Run Spring Boot application (launches on port 8080)
 ./mvnw spring-boot:run
 ```
 
-#### 3. Frontend Angular Setup
-```bash
-cd angular-auth
-
-# Install npm dependencies
-npm install
-
-# Start Angular development server with proxy (launches on port 4200)
-npm start
-```
 Navigate your browser to `http://localhost:4200` to interact with the live portal.
 
 ---
@@ -195,7 +185,7 @@ Navigate your browser to `http://localhost:4200` to interact with the live porta
 ## 8. REST API Reference & Swagger Specification
 
 When the backend is running, the interactive OpenAPI specification is available at:
-👉 **`http://localhost:8083/swagger-ui.html`**
+👉 **`http://localhost:8080/swagger-ui.html`**
 
 ### Key REST Endpoints
 

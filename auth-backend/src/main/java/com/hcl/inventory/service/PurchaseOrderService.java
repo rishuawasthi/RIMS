@@ -3,9 +3,11 @@ package com.hcl.inventory.service;
 import com.hcl.inventory.entity.Inventory;
 import com.hcl.inventory.entity.Product;
 import com.hcl.inventory.entity.PurchaseOrder;
+import com.hcl.inventory.entity.StockMovement;
 import com.hcl.inventory.entity.Supplier;
 import com.hcl.inventory.entity.Warehouse;
 import com.hcl.inventory.enums.InventoryStatus;
+import com.hcl.inventory.enums.MovementType;
 import com.hcl.inventory.enums.PurchaseOrderStatus;
 import com.hcl.inventory.exception.DuplicatePurchaseOrderException;
 import com.hcl.inventory.exception.InvalidPurchaseOrderException;
@@ -16,6 +18,7 @@ import com.hcl.inventory.exception.WarehouseNotFoundException;
 import com.hcl.inventory.repository.InventoryRepository;
 import com.hcl.inventory.repository.ProductRepository;
 import com.hcl.inventory.repository.PurchaseOrderRepository;
+import com.hcl.inventory.repository.StockMovementRepository;
 import com.hcl.inventory.repository.SupplierRepository;
 import com.hcl.inventory.repository.WarehouseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +36,7 @@ public class PurchaseOrderService {
     private final ProductRepository productRepository;
     private final WarehouseRepository warehouseRepository;
     private final InventoryRepository inventoryRepository;
+    private final StockMovementRepository stockMovementRepository;
 
     @Autowired
     public PurchaseOrderService(
@@ -40,24 +44,34 @@ public class PurchaseOrderService {
             SupplierRepository supplierRepository,
             ProductRepository productRepository,
             WarehouseRepository warehouseRepository,
-            InventoryRepository inventoryRepository
+            InventoryRepository inventoryRepository,
+            @Autowired(required = false) StockMovementRepository stockMovementRepository
     ) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.supplierRepository = supplierRepository;
         this.productRepository = productRepository;
         this.warehouseRepository = warehouseRepository;
         this.inventoryRepository = inventoryRepository;
+        this.stockMovementRepository = stockMovementRepository;
+    }
+
+    public PurchaseOrderService(
+            PurchaseOrderRepository purchaseOrderRepository,
+            SupplierRepository supplierRepository,
+            ProductRepository productRepository,
+            WarehouseRepository warehouseRepository,
+            InventoryRepository inventoryRepository
+    ) {
+        this(purchaseOrderRepository, supplierRepository, productRepository, warehouseRepository, inventoryRepository, null);
     }
 
     @Transactional(readOnly = true)
     public List<PurchaseOrder> getAllPurchaseOrders() {
-
         return purchaseOrderRepository.findAll();
     }
 
     @Transactional(readOnly = true)
     public PurchaseOrder getPurchaseOrderById(Integer poId) {
-
         return purchaseOrderRepository.findById(poId)
                 .orElseThrow(() ->
                         new PurchaseOrderNotFoundException(
@@ -72,7 +86,6 @@ public class PurchaseOrderService {
     public PurchaseOrder addPurchaseOrder(
             PurchaseOrder purchaseOrder
     ) {
-
         validateBasicPurchaseOrderData(purchaseOrder);
 
         String poNumber = purchaseOrder.getPoNumber()
@@ -80,7 +93,6 @@ public class PurchaseOrderService {
                 .toUpperCase();
 
         if (purchaseOrderRepository.existsByPoNumber(poNumber)) {
-
             throw new DuplicatePurchaseOrderException(
                     "Purchase order with number "
                             + poNumber
@@ -116,13 +128,11 @@ public class PurchaseOrderService {
             Integer poId,
             PurchaseOrder updatedPurchaseOrder
     ) {
-
         PurchaseOrder existingPurchaseOrder =
                 getPurchaseOrderById(poId);
 
         if (existingPurchaseOrder.getStatus()
                 != PurchaseOrderStatus.DRAFT) {
-
             throw new InvalidPurchaseOrderException(
                     "Only DRAFT purchase orders can be updated"
             );
@@ -139,7 +149,6 @@ public class PurchaseOrderService {
                         poNumber,
                         poId
                 )) {
-
             throw new DuplicatePurchaseOrderException(
                     "Purchase order with number "
                             + poNumber
@@ -148,21 +157,15 @@ public class PurchaseOrderService {
         }
 
         Supplier supplier = getSupplier(
-                updatedPurchaseOrder
-                        .getSupplier()
-                        .getSupplierId()
+                updatedPurchaseOrder.getSupplier().getSupplierId()
         );
 
         Product product = getProduct(
-                updatedPurchaseOrder
-                        .getProduct()
-                        .getProductId()
+                updatedPurchaseOrder.getProduct().getProductId()
         );
 
         Warehouse warehouse = getWarehouse(
-                updatedPurchaseOrder
-                        .getWarehouse()
-                        .getWarehouseId()
+                updatedPurchaseOrder.getWarehouse().getWarehouseId()
         );
 
         existingPurchaseOrder.setPoNumber(poNumber);
@@ -174,6 +177,9 @@ public class PurchaseOrderService {
         );
         existingPurchaseOrder.setUnitPrice(
                 updatedPurchaseOrder.getUnitPrice()
+        );
+        existingPurchaseOrder.setTotalAmount(
+                updatedPurchaseOrder.getTotalAmount()
         );
         existingPurchaseOrder.setExpectedDeliveryDate(
                 updatedPurchaseOrder.getExpectedDeliveryDate()
@@ -191,13 +197,11 @@ public class PurchaseOrderService {
     public PurchaseOrder placePurchaseOrder(
             Integer poId
     ) {
-
         PurchaseOrder purchaseOrder =
                 getPurchaseOrderById(poId);
 
         if (purchaseOrder.getStatus()
                 != PurchaseOrderStatus.DRAFT) {
-
             throw new InvalidPurchaseOrderException(
                     "Only DRAFT purchase orders can be placed"
             );
@@ -216,7 +220,6 @@ public class PurchaseOrderService {
     public PurchaseOrder cancelPurchaseOrder(
             Integer poId
     ) {
-
         PurchaseOrder purchaseOrder =
                 getPurchaseOrderById(poId);
 
@@ -224,14 +227,12 @@ public class PurchaseOrderService {
                 purchaseOrder.getStatus();
 
         if (status == PurchaseOrderStatus.RECEIVED) {
-
             throw new InvalidPurchaseOrderException(
                     "A RECEIVED purchase order cannot be cancelled"
             );
         }
 
         if (status == PurchaseOrderStatus.CANCELLED) {
-
             throw new InvalidPurchaseOrderException(
                     "Purchase order is already cancelled"
             );
@@ -251,13 +252,11 @@ public class PurchaseOrderService {
             Integer poId,
             Integer receivingQuantity
     ) {
-
         PurchaseOrder purchaseOrder =
                 getPurchaseOrderById(poId);
 
         if (receivingQuantity == null
                 || receivingQuantity <= 0) {
-
             throw new InvalidPurchaseOrderException(
                     "Receiving quantity must be greater than 0"
             );
@@ -268,7 +267,6 @@ public class PurchaseOrderService {
 
         if (status != PurchaseOrderStatus.PLACED
                 && status != PurchaseOrderStatus.PARTIALLY_RECEIVED) {
-
             throw new InvalidPurchaseOrderException(
                     "Only PLACED or PARTIALLY_RECEIVED purchase orders can be received"
             );
@@ -281,7 +279,6 @@ public class PurchaseOrderService {
                 currentReceived + receivingQuantity;
 
         if (totalReceived > purchaseOrder.getQuantity()) {
-
             throw new InvalidPurchaseOrderException(
                     "Received quantity cannot exceed ordered quantity"
             );
@@ -293,6 +290,18 @@ public class PurchaseOrderService {
                 receivingQuantity
         );
 
+        if (stockMovementRepository != null) {
+            stockMovementRepository.save(new StockMovement(
+                    purchaseOrder.getProduct(),
+                    purchaseOrder.getWarehouse(),
+                    MovementType.INBOUND_PO,
+                    receivingQuantity,
+                    purchaseOrder.getPoNumber(),
+                    "PO Goods Receipt Replenishment",
+                    "PURCHASING_DEPT"
+            ));
+        }
+
         purchaseOrder.setReceivedQuantity(
                 totalReceived
         );
@@ -302,13 +311,10 @@ public class PurchaseOrderService {
         );
 
         if (totalReceived == purchaseOrder.getQuantity()) {
-
             purchaseOrder.setStatus(
                     PurchaseOrderStatus.RECEIVED
             );
-
         } else {
-
             purchaseOrder.setStatus(
                     PurchaseOrderStatus.PARTIALLY_RECEIVED
             );
@@ -321,7 +327,6 @@ public class PurchaseOrderService {
 
     @Transactional
     public void deletePurchaseOrder(Integer poId) {
-
         PurchaseOrder purchaseOrder =
                 getPurchaseOrderById(poId);
 
@@ -330,7 +335,6 @@ public class PurchaseOrderService {
 
         if (status != PurchaseOrderStatus.DRAFT
                 && status != PurchaseOrderStatus.CANCELLED) {
-
             throw new InvalidPurchaseOrderException(
                     "Only DRAFT or CANCELLED purchase orders can be deleted"
             );
@@ -345,7 +349,6 @@ public class PurchaseOrderService {
     public List<PurchaseOrder> searchByPoNumber(
             String poNumber
     ) {
-
         return purchaseOrderRepository
                 .findByPoNumberContainingIgnoreCase(
                         poNumber
@@ -356,7 +359,6 @@ public class PurchaseOrderService {
     public List<PurchaseOrder> getBySupplier(
             Integer supplierId
     ) {
-
         getSupplier(supplierId);
 
         return purchaseOrderRepository
@@ -369,7 +371,6 @@ public class PurchaseOrderService {
     public List<PurchaseOrder> getByProduct(
             Integer productId
     ) {
-
         getProduct(productId);
 
         return purchaseOrderRepository
@@ -382,7 +383,6 @@ public class PurchaseOrderService {
     public List<PurchaseOrder> getByWarehouse(
             Integer warehouseId
     ) {
-
         getWarehouse(warehouseId);
 
         return purchaseOrderRepository
@@ -395,53 +395,56 @@ public class PurchaseOrderService {
     public List<PurchaseOrder> getByStatus(
             PurchaseOrderStatus status
     ) {
-
-        return purchaseOrderRepository.findByStatus(
-                status
-        );
+        return purchaseOrderRepository.findByStatus(status);
     }
 
     private void validateBasicPurchaseOrderData(
-            PurchaseOrder purchaseOrder
+            PurchaseOrder po
     ) {
+        if (po == null) {
+            throw new InvalidPurchaseOrderException(
+                    "Purchase order data is required"
+            );
+        }
 
-        if (purchaseOrder.getSupplier() == null
-                || purchaseOrder.getSupplier().getSupplierId() == null) {
-
+        if (po.getSupplier() == null
+                || po.getSupplier().getSupplierId() == null) {
             throw new SupplierNotFoundException(
                     "Supplier id is required"
             );
         }
 
-        if (purchaseOrder.getProduct() == null
-                || purchaseOrder.getProduct().getProductId() == null) {
-
+        if (po.getProduct() == null
+                || po.getProduct().getProductId() == null) {
             throw new ProductNotFoundException(
                     "Product id is required"
             );
         }
 
-        if (purchaseOrder.getWarehouse() == null
-                || purchaseOrder.getWarehouse().getWarehouseId() == null) {
-
+        if (po.getWarehouse() == null
+                || po.getWarehouse().getWarehouseId() == null) {
             throw new WarehouseNotFoundException(
                     "Warehouse id is required"
             );
         }
 
-        if (purchaseOrder.getQuantity() == null
-                || purchaseOrder.getQuantity() <= 0) {
-
+        if (po.getQuantity() == null || po.getQuantity() <= 0) {
             throw new InvalidPurchaseOrderException(
                     "Purchase order quantity must be greater than 0"
             );
         }
 
-        if (purchaseOrder.getUnitPrice() == null
-                || purchaseOrder.getUnitPrice().signum() <= 0) {
-
+        if (po.getUnitPrice() == null
+                || po.getUnitPrice().signum() <= 0) {
             throw new InvalidPurchaseOrderException(
                     "Unit price must be greater than 0"
+            );
+        }
+
+        if (po.getTotalAmount() == null
+                || po.getTotalAmount().signum() < 0) {
+            throw new InvalidPurchaseOrderException(
+                    "Total amount cannot be negative"
             );
         }
     }
@@ -449,7 +452,6 @@ public class PurchaseOrderService {
     private Supplier getSupplier(
             Integer supplierId
     ) {
-
         return supplierRepository.findById(supplierId)
                 .orElseThrow(() ->
                         new SupplierNotFoundException(
@@ -463,7 +465,6 @@ public class PurchaseOrderService {
     private Product getProduct(
             Integer productId
     ) {
-
         return productRepository.findById(productId)
                 .orElseThrow(() ->
                         new ProductNotFoundException(
@@ -477,7 +478,6 @@ public class PurchaseOrderService {
     private Warehouse getWarehouse(
             Integer warehouseId
     ) {
-
         return warehouseRepository.findById(warehouseId)
                 .orElseThrow(() ->
                         new WarehouseNotFoundException(
@@ -493,7 +493,6 @@ public class PurchaseOrderService {
             Integer warehouseId,
             Integer receivingQuantity
     ) {
-
         Inventory inventory =
                 inventoryRepository
                         .findByProductProductIdAndWarehouseWarehouseId(
@@ -503,7 +502,6 @@ public class PurchaseOrderService {
                         .orElse(null);
 
         if (inventory == null) {
-
             Product product =
                     getProduct(productId);
 
@@ -511,7 +509,6 @@ public class PurchaseOrderService {
                     getWarehouse(warehouseId);
 
             inventory = new Inventory();
-
             inventory.setProduct(product);
             inventory.setWarehouse(warehouse);
             inventory.setQuantity(receivingQuantity);
@@ -520,9 +517,7 @@ public class PurchaseOrderService {
             inventory.setStatus(
                     InventoryStatus.ACTIVE
             );
-
         } else {
-
             int newQuantity =
                     inventory.getQuantity()
                             + receivingQuantity;

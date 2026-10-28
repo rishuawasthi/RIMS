@@ -34,7 +34,7 @@ USER rims
 COPY --from=build /workspace/target/auth-backend-*.jar app.jar
 
 # Expose the application port
-EXPOSE 8083
+EXPOSE 8080
 
 # JVM tuning for containerised environments
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"

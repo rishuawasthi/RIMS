@@ -42,9 +42,9 @@ services:
       RIMS_JWT_SECRET: RimsSecretKey2026XyzRetailCorporationSuperSecure!ChangeThisInProd
       RIMS_JWT_EXPIRATION_MS: 86400000
     ports:
-      - "8083:8083"
+      - "8080:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5

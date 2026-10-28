@@ -15,6 +15,14 @@
       <span aria-hidden="true">⌕</span>
       <input type="search" [value]="query()" (input)="setQuery($event)" [placeholder]="'Search ' + config().title.toLowerCase()" [attr.aria-label]="'Search ' + config().title" />
     </label>
+
+    @if (config().endpoint === 'inventory') {
+      <label class="low-stock-toggle" style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;padding:6px 12px;background:#fff1f0;border:1px solid #ffa39e;border-radius:6px;cursor:pointer;color:#cf1322;">
+        <input type="checkbox" [checked]="lowStockOnly()" (change)="toggleLowStockOnly()" />
+        <span>⚠️ Filter Low Stock Items (≤ Reorder Level)</span>
+      </label>
+    }
+
     <div class="table-count"><strong>{{ filteredRecords().length }}</strong> records</div>
   </div>
 
@@ -76,12 +84,16 @@
           <tr><td class="table-message" [attr.colspan]="config().columns.length + 1">{{ records().length ? 'No records match your search.' : 'No records yet. Add one to get started.' }}</td></tr>
         } @else {
           @for (record of filteredRecords(); track record[config().idKey]) {
-            <tr>
+            <tr [style.background-color]="isLowStock(record) ? '#fff8f6' : null">
               @for (column of config().columns; track column.key) {
                 <td>
                   @if (column.key === 'status') {
                     <span class="status-pill" [class.status-inactive]="displayValue(record, column.key).toLowerCase().includes('inactive') || displayValue(record, column.key).toLowerCase().includes('cancelled') || displayValue(record, column.key).toLowerCase().includes('closed') || displayValue(record, column.key).toLowerCase().includes('blocked')" [class.status-pending]="displayValue(record, column.key).toLowerCase().includes('draft') || displayValue(record, column.key).toLowerCase().includes('pending') || displayValue(record, column.key).toLowerCase().includes('backorder')">{{ displayValue(record, column.key) }}</span>
-                  } @else { {{ displayValue(record, column.key) }} }
+                  } @else if (config().endpoint === 'inventory' && column.key === 'quantity' && isLowStock(record)) {
+                    <span style="font-weight:700;color:#cf1322;">{{ displayValue(record, column.key) }} <small style="background:#ffccc7;padding:2px 6px;border-radius:4px;font-size:10px;text-transform:uppercase;margin-left:4px;">Low Stock</small></span>
+                  } @else {
+                    {{ displayValue(record, column.key) }}
+                  }
                 </td>
               }
               <td class="row-actions">

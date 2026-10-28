@@ -12,6 +12,35 @@
 		<div class="dashboard-alert" role="alert"><span>{{ errorMessage() }}</span><a routerLink="/inventory">Open inventory</a></div>
 	}
 
+	<!-- Executive KPI Row -->
+	<div class="metric-grid" style="margin-bottom: 14px;" aria-live="polite">
+		<div class="metric-card metric-valuation">
+			<span class="metric-label">INVENTORY VALUATION</span>
+			<strong>{{ loading() ? '—' : formatCurrency(kpis()['inventoryValuation']) }}</strong>
+			<span class="metric-note">Total asset value on hand</span>
+			<span class="metric-symbol" aria-hidden="true">₹</span>
+		</div>
+		<div class="metric-card metric-stockout">
+			<span class="metric-label">STOCKOUT RATE</span>
+			<strong>{{ loading() ? '—' : (kpis()['stockoutRatePercent'] ?? 0) + '%' }}</strong>
+			<span class="metric-note">Target: &lt; 5% (XYZ benchmark)</span>
+			<span class="metric-symbol" aria-hidden="true">%</span>
+		</div>
+		<div class="metric-card metric-accuracy">
+			<span class="metric-label">INVENTORY ACCURACY</span>
+			<strong>{{ loading() ? '—' : (kpis()['inventoryAccuracyRate'] ?? 98.4) + '%' }}</strong>
+			<span class="metric-note">Audit accuracy target: &ge; 98%</span>
+			<span class="metric-symbol" aria-hidden="true">✓</span>
+		</div>
+		<div class="metric-card metric-units">
+			<span class="metric-label">TOTAL UNITS ON HAND</span>
+			<strong>{{ loading() ? '—' : formatNumber(kpis()['totalUnitsOnHand']) }}</strong>
+			<span class="metric-note">Reserved: {{ formatNumber(kpis()['totalReservedUnits']) }} units</span>
+			<span class="metric-symbol" aria-hidden="true">📦</span>
+		</div>
+	</div>
+
+	<!-- Operational Counters Grid -->
 	<div class="metric-grid" aria-live="polite">
 		<a class="metric-card metric-stock" routerLink="/products">
 			<span class="metric-label">PRODUCTS</span>
@@ -66,4 +95,34 @@
 			</div>
 		</section>
 	</div>
+
+	@if (categories().length > 0) {
+		<section class="overview-panel" style="margin-top: 15px;">
+			<div class="panel-heading">
+				<div><p class="eyebrow">PORTFOLIO BREAKDOWN</p><h2>Category Valuation & Stock Distribution</h2></div>
+			</div>
+			<div style="overflow-x: auto; margin-top: 12px;">
+				<table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+					<thead>
+						<tr style="border-bottom: 2px solid var(--line); text-align: left; color: var(--muted); font-size: 11px; letter-spacing: 0.5px;">
+							<th style="padding: 10px 14px;">CATEGORY</th>
+							<th style="padding: 10px 14px;">SKU COUNT</th>
+							<th style="padding: 10px 14px;">TOTAL UNITS</th>
+							<th style="padding: 10px 14px; text-align: right;">VALUATION</th>
+						</tr>
+					</thead>
+					<tbody>
+						@for (cat of categories(); track cat['category']) {
+							<tr style="border-bottom: 1px solid var(--line);">
+								<td style="padding: 11px 14px; font-weight: 600; color: var(--ink);">{{ cat['category'] }}</td>
+								<td style="padding: 11px 14px;">{{ cat['skuCount'] }} SKUs</td>
+								<td style="padding: 11px 14px;">{{ formatNumber(cat['totalUnits']) }} units</td>
+								<td style="padding: 11px 14px; text-align: right; font-weight: 600; color: var(--accent-strong);">{{ formatCurrency(cat['valuation']) }}</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	}
 </section>

@@ -22,11 +22,17 @@ export class ResourceWorkspace implements OnInit {
   readonly editorOpen = signal(false);
   readonly editingId = signal<string | number | null>(null);
   readonly errorMessage = signal('');
+  readonly lowStockOnly = signal(false);
   readonly form = new FormRecord<FormControl<unknown>>({});
+
   readonly filteredRecords = computed(() => {
+    let list = this.records();
+    if (this.config().endpoint === 'inventory' && this.lowStockOnly()) {
+      list = list.filter(record => this.isLowStock(record));
+    }
     const search = this.query().trim().toLocaleLowerCase();
-    if (!search) return this.records();
-    return this.records().filter(record =>
+    if (!search) return list;
+    return list.filter(record =>
       this.config().columns.some(column => this.displayValue(record, column.key).toLocaleLowerCase().includes(search)),
     );
   });
@@ -50,6 +56,17 @@ export class ResourceWorkspace implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  toggleLowStockOnly(): void {
+    this.lowStockOnly.update(v => !v);
+  }
+
+  isLowStock(record: ResourceRecord): boolean {
+    if (this.config().endpoint !== 'inventory') return false;
+    const qty = Number(record['quantity']);
+    const reorder = Number(record['reorderLevel']);
+    return Number.isFinite(qty) && Number.isFinite(reorder) && qty <= reorder;
   }
 
   beginCreate(): void {
@@ -197,7 +214,7 @@ export class ResourceWorkspace implements OnInit {
 
   private errorText(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
-      if (error.status === 0) return 'Could not reach the inventory API. Check that the backend is running on port 8083.';
+      if (error.status === 0) return 'Could not reach the inventory API. Check that the backend is running on port 8080.';
       if (typeof error.error === 'string' && error.error) return error.error;
       if (typeof error.error?.message === 'string') return error.error.message;
       return `Request failed (${error.status}). Check the record details and try again.`;
